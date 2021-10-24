@@ -132,3 +132,31 @@ fn mc_varlong_encode_examples() -> Result<()> {
     );
     Ok(())
 }
+
+#[test]
+fn string_encode_and_decode() -> Result<()> {
+    let mc_string = McString::from("Some String");
+    let encoded = mc_string.encode()?;
+    let (decoded, _) = McString::decode(encoded, 32767)?;
+
+    assert_eq!("Some String", *decoded);
+
+    Ok(())
+}
+
+#[test]
+fn string_type_forwards() -> Result<()> {
+    let chat_json = ChatJson::from("Some String");
+    let encoded = chat_json.encode()?;
+    let (decoded, _) = ChatJson::decode(encoded)?;
+
+    assert_eq!("Some String", *decoded);
+
+    let identifier = Identifier::from("Some String");
+    let encoded = identifier.encode()?;
+    let (decoded, _) = Identifier::decode(encoded)?;
+
+    assert_eq!("Some String", *decoded);
+
+    Ok(())
+}
