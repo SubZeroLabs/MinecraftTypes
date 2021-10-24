@@ -193,87 +193,51 @@ pub mod primitive {
     );
 }
 
+macro_rules! var_num {
+    ($name:ident, $primitive_signed:ty, $bit_limit:literal, $primitive_unsigned:ty, $and_check:literal) => {
+        impl Decodable<$name> for $name {
+            fn decode(bytes: Vec<u8>) -> Result<($name, Vec<u8>)> {
+                let mut value: $primitive_signed = 0;
+                let mut bit_offset = 0u32;
+                let mut iter = bytes.into_iter();
+                loop {
+                    if bit_offset == $bit_limit {
+                        return Err(format!("Variable number was too big, expected {}.", $bit_limit));
+                    }
+
+                    if let Some(next_byte) = iter.next() {
+                        value |= <$primitive_signed>::from(next_byte & 0b01111111).overflowing_shl(bit_offset).0;
+                        bit_offset += 7;
+
+                        if next_byte & 0b10000000 == 0 {
+                            break;
+                        }
+                    } else {
+                        return Err(String::from(UNEXPECTED_EOF));
+                    }
+                };
+                Ok(($name(value), iter.collect()))
+            }
+        }
+        impl Encodable<$name> for $name {
+            fn encode(&self) -> Result<Vec<u8>> {
+                let mut vec = Vec::new();
+                let mut temp = self.0.clone() as $primitive_unsigned;
+                loop {
+                    if temp & $and_check == 0 {
+                        vec.push(temp as u8);
+                        return Ok(vec);
+                    }
+
+                    vec.push((temp & 0x7F | 0x80) as u8);
+                    temp = temp.overflowing_shr(7).0;
+                };
+            }
+        }
+    }
+}
+
 prim_type!(VarInt = i32);
 prim_type!(VarLong = i64);
-
-impl Decodable<VarInt> for VarInt {
-    fn decode(bytes: Vec<u8>) -> Result<(VarInt, Vec<u8>)> {
-        let mut value = 0i32;
-        let mut bit_offset = 0u32;
-        let mut iter = bytes.into_iter();
-        loop {
-            if bit_offset == 35 {
-                return Err(String::from("VarInt was too big."));
-            }
-
-            if let Some(next_byte) = iter.next() {
-                value |= i32::from(next_byte & 0b01111111).overflowing_shl(bit_offset).0;
-                bit_offset += 7;
-
-                if next_byte & 0b10000000 == 0 {
-                    break;
-                }
-            } else {
-                return Err(String::from(UNEXPECTED_EOF));
-            }
-        };
-        Ok((VarInt(value), iter.collect()))
-    }
-}
-
-impl Encodable<VarInt> for VarInt {
-    fn encode(&self) -> Result<Vec<u8>> {
-        let mut vec = Vec::new();
-        let mut temp = self.0.clone() as u32;
-        loop {
-            if temp & 0xFFFFFF80 == 0 {
-                vec.push(temp as u8);
-                return Ok(vec);
-            }
-
-            vec.push((temp & 0x7F | 0x80) as u8);
-            temp = temp.overflowing_shr(7).0;
-        };
-    }
-}
-
-impl Decodable<VarLong> for VarLong {
-    fn decode(bytes: Vec<u8>) -> Result<(VarLong, Vec<u8>)> {
-        let mut value = 0i64;
-        let mut bit_offset = 0u32;
-        let mut iter = bytes.into_iter();
-        loop {
-            if bit_offset == 70 {
-                return Err(String::from("VarInt was too big."));
-            }
-
-            if let Some(next_byte) = iter.next() {
-                value |= i64::from(next_byte & 0b01111111).overflowing_shl(bit_offset).0;
-                bit_offset += 7;
-
-                if next_byte & 0b10000000 == 0 {
-                    break;
-                }
-            } else {
-                return Err(String::from(UNEXPECTED_EOF));
-            }
-        };
-        Ok((VarLong(value), iter.collect()))
-    }
-}
-
-impl Encodable<VarLong> for VarLong {
-    fn encode(&self) -> Result<Vec<u8>> {
-        let mut vec = Vec::new();
-        let mut temp = self.0.clone() as u64;
-        loop {
-            if temp & 0xFFFFFFFFFFFFFF80 == 0 {
-                vec.push(temp as u8);
-                return Ok(vec);
-            }
-
-            vec.push((temp & 0x7F | 0x80) as u8);
-            temp = temp.overflowing_shr(7).0;
-        };
-    }
-}
+var_num!(VarInt, i32, 35, u32, 0xFFFFFF80);
+var_num!(VarLong, i64, 70, u64, 0xFFFFFFFFFFFFFF80);
