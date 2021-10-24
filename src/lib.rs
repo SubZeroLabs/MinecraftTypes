@@ -204,11 +204,16 @@ macro_rules! var_num {
                 let mut iter = bytes.into_iter();
                 loop {
                     if bit_offset == $bit_limit {
-                        return Err(format!("Variable number was too big, expected {}.", $bit_limit));
+                        return Err(format!(
+                            "Variable number was too big, expected {}.",
+                            $bit_limit
+                        ));
                     }
 
                     if let Some(next_byte) = iter.next() {
-                        value |= <$primitive_signed>::from(next_byte & 0b01111111).overflowing_shl(bit_offset).0;
+                        value |= <$primitive_signed>::from(next_byte & 0b01111111)
+                            .overflowing_shl(bit_offset)
+                            .0;
                         bit_offset += 7;
 
                         if next_byte & 0b10000000 == 0 {
@@ -217,7 +222,7 @@ macro_rules! var_num {
                     } else {
                         return Err(String::from(UNEXPECTED_EOF));
                     }
-                };
+                }
                 Ok(($name(value), iter.collect()))
             }
         }
@@ -233,10 +238,10 @@ macro_rules! var_num {
 
                     vec.push((temp & 0x7F | 0x80) as u8);
                     temp = temp.overflowing_shr(7).0;
-                };
+                }
             }
         }
-    }
+    };
 }
 
 var_num!(VarInt, i32, 35, u32, 0xFFFFFF80);
