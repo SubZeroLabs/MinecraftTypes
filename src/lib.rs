@@ -195,6 +195,8 @@ pub mod primitive {
 
 macro_rules! var_num {
     ($name:ident, $primitive_signed:ty, $bit_limit:literal, $primitive_unsigned:ty, $and_check:literal) => {
+        prim_type!($name = $primitive_signed);
+
         impl Decodable<$name> for $name {
             fn decode(bytes: Vec<u8>) -> Result<($name, Vec<u8>)> {
                 let mut value: $primitive_signed = 0;
@@ -237,7 +239,5 @@ macro_rules! var_num {
     }
 }
 
-prim_type!(VarInt = i32);
-prim_type!(VarLong = i64);
 var_num!(VarInt, i32, 35, u32, 0xFFFFFF80);
 var_num!(VarLong, i64, 70, u64, 0xFFFFFFFFFFFFFF80);
