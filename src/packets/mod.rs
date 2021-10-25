@@ -4,6 +4,7 @@ macro_rules! packet {
             $(pub $field: $field_type,)*
         }
 
+        #[allow(unused_mut)] // this is purely for empty packets
         impl crate::Encodable for $packet_name {
             fn encode(&self) -> crate::Result<Vec<u8>> {
                 let mut encoder = crate::Encoder::new();
