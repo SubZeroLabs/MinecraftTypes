@@ -1,4 +1,5 @@
 use minecraft_data_types::*;
+use uuid::Uuid;
 
 #[test]
 fn mc_bool_decode_takes_1_byte() -> Result<()> {
@@ -158,5 +159,16 @@ fn string_type_forwards() -> Result<()> {
 
     assert_eq!("Some String", *decoded);
 
+    Ok(())
+}
+
+#[test]
+fn uuid_type_forwards() -> Result<()> {
+    let uuid = Uuid::new_v4();
+    let mc_uuid = McUuid::new(uuid.clone());
+    let encoded = mc_uuid.encode()?;
+    let (decoded, _) = McUuid::decode(encoded)?;
+
+    assert_eq!(uuid, *decoded);
     Ok(())
 }

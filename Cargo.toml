@@ -4,3 +4,5 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
+uuid = { version = "0.8.2", features = ["v4"] }
+hematite-nbt = "0.5.2"
