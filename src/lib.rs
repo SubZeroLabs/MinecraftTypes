@@ -2,7 +2,20 @@ use std::ops::Deref;
 use uuid::{Builder, Uuid};
 use std::io::Write;
 
+#[macro_use]
+pub mod packets;
+
 pub type Result<T> = std::result::Result<T, String>;
+
+pub trait Decodable<T> {
+    /// Decodes the given bytes into type `T` and returns the decoded type `T` and the remaining bytes.
+    fn decode(bytes: Vec<u8>) -> Result<(T, Vec<u8>)>;
+}
+
+pub trait Encodable {
+    /// Encodes struct into a set of bytes to be sent to the client.
+    fn encode(&self) -> Result<Vec<u8>>;
+}
 
 pub struct Encoder {
     internal_vec: std::io::Cursor<Vec<u8>>,
@@ -31,6 +44,13 @@ impl Encoder {
             Ok(())
         }
     }
+
+    pub fn encode_arr(&mut self, encodable: Vec<&impl Encodable>) -> Result<()> {
+        for item in encodable {
+            self.encode(item)?
+        }
+        Ok(())
+    }
 }
 
 impl Into<Vec<u8>> for Encoder {
@@ -39,17 +59,19 @@ impl Into<Vec<u8>> for Encoder {
     }
 }
 
-pub trait Decodable<T> {
-    /// Decodes the given bytes into type `T` and returns the decoded type `T` and the remaining bytes.
-    fn decode(bytes: Vec<u8>) -> Result<(T, Vec<u8>)>;
-}
-
-pub trait Encodable {
-    /// Encodes struct into a set of bytes to be sent to the client.
-    fn encode(&self) -> Result<Vec<u8>>;
-}
-
 const UNEXPECTED_EOF: &str = "Unexpected EOF in decoder.";
+
+impl Encodable for u8 {
+    fn encode(&self) -> Result<Vec<u8>> {
+        Ok(vec![*self])
+    }
+}
+
+impl Encodable for [u8] {
+    fn encode(&self) -> Result<Vec<u8>> {
+        Ok(Vec::from(self))
+    }
+}
 
 macro_rules! prim_type {
         ($name:ident = $primitive:ty) => {
