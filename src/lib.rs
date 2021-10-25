@@ -1,6 +1,6 @@
+use std::io::Write;
 use std::ops::Deref;
 use uuid::{Builder, Uuid};
-use std::io::Write;
 
 #[macro_use]
 pub mod packets;
@@ -133,7 +133,7 @@ macro_rules! prim_type {
         };
     }
 
-fn require_bytes(iterator: impl Iterator<Item=u8>, size: usize) -> Result<(Vec<u8>, Vec<u8>)> {
+fn require_bytes(iterator: impl Iterator<Item = u8>, size: usize) -> Result<(Vec<u8>, Vec<u8>)> {
     let vec: Vec<u8> = iterator.collect();
     if vec.len() < size {
         Err(String::from(UNEXPECTED_EOF))
@@ -551,12 +551,8 @@ impl Encodable for NbtTag {
     fn encode(&self) -> Result<Vec<u8>> {
         let mut dst = Vec::new();
         match self.0.to_writer(&mut dst) {
-            Ok(()) => {
-                Ok(dst)
-            }
-            Err(_) => {
-                Err(String::from("Failed to write nbt data to bytes."))
-            }
+            Ok(()) => Ok(dst),
+            Err(_) => Err(String::from("Failed to write nbt data to bytes.")),
         }
     }
 }
@@ -565,12 +561,8 @@ impl Decodable<NbtTag> for NbtTag {
     fn decode(bytes: Vec<u8>) -> Result<(NbtTag, Vec<u8>)> {
         let mut src = std::io::Cursor::new(bytes);
         match nbt::Blob::from_reader(&mut src) {
-            Ok(blob) => {
-                Ok((NbtTag(blob), src.into_inner()))
-            }
-            Err(_) => {
-                Err(String::from("Error reading blob nbt."))
-            }
+            Ok(blob) => Ok((NbtTag(blob), src.into_inner())),
+            Err(_) => Err(String::from("Error reading blob nbt.")),
         }
     }
 }
