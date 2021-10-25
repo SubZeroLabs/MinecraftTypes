@@ -1,28 +1,28 @@
 use crate::{primitive::McUnsignedByte, ChatJson, Decoder, Identifier, McString, McUuid, VarInt};
 
 minecraft_struct! { Disconnect
-    reason = ChatJson;encode;;decode;
+    reason = ChatJson;;decode;
 }
 
 minecraft_struct! { EncryptionRequest
-    server_id = McString;encode;;decode 20;
-    public_key_length = VarInt;encode;;decode;
-    public_key = Vec<McUnsignedByte>;encode_arr;Decoder;decode_arr VarInt::from(*public_key_length);
-    verify_token_length = VarInt;encode;;decode;
-    verify_token = Vec<McUnsignedByte>;encode_arr;Decoder;decode_arr VarInt::from(*verify_token_length);
+    server_id = McString;;decode 20;
+    public_key_length = VarInt;;decode;
+    public_key = Vec<McUnsignedByte>;Decoder;decode_arr VarInt::from(*public_key_length);
+    verify_token_length = VarInt;;decode;
+    verify_token = Vec<McUnsignedByte>;Decoder;decode_arr VarInt::from(*verify_token_length);
 }
 
 minecraft_struct! { LoginSuccess
-    uuid = McUuid;encode;;decode;
-    username = McString;encode;;decode 16;
+    uuid = McUuid;;decode;
+    username = McString;;decode 16;
 }
 
 minecraft_struct! { SetCompression
-    threshold = VarInt;encode;;decode;
+    threshold = VarInt;;decode;
 }
 
 minecraft_struct! { LoginPluginrequest
-    message_id = VarInt;encode;;decode;
-    channel = Identifier;encode;;decode;
-    data = Vec<McUnsignedByte>;encode_arr;Decoder;decode_to_end;
+    message_id = VarInt;;decode;
+    channel = Identifier;;decode;
+    data = Vec<McUnsignedByte>;Decoder;decode_to_end;
 }

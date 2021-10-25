@@ -1,133 +1,134 @@
 use crate::{
-    primitive::{McBoolean, McLong, McByte, McDouble, McFloat, McInteger, McShort, McUnsignedByte},
-    Angle, McString, VarLong, ChatJson, Decoder, Identifier, McUuid, NbtTag, Position, SlotData, VarInt,
+    primitive::{McBoolean, McByte, McDouble, McFloat, McInteger, McLong, McShort, McUnsignedByte},
+    Angle, ChatJson, Decoder, Identifier, McString, McUuid, NbtTag, Position, SlotData, VarInt,
+    VarLong,
 };
 minecraft_struct! { SpawnEntity
-    entity_id = VarInt;encode;;decode;
-    uuid = McUuid;encode;;decode;
-    entity_type = VarInt;encode;;decode;
-    x = McDouble;encode;;decode;
-    y = McDouble;encode;;decode;
-    z = McDouble;encode;;decode;
-    pitch = Angle;encode;;decode;
-    yaw = Angle;encode;;decode;
-    data = McInteger;encode;;decode;
-    velocity_x = McShort;encode;;decode;
-    velocity_y = McShort;encode;;decode;
-    velocity_z = McShort;encode;;decode;
+    entity_id = VarInt;;decode;
+    uuid = McUuid;;decode;
+    entity_type = VarInt;;decode;
+    x = McDouble;;decode;
+    y = McDouble;;decode;
+    z = McDouble;;decode;
+    pitch = Angle;;decode;
+    yaw = Angle;;decode;
+    data = McInteger;;decode;
+    velocity_x = McShort;;decode;
+    velocity_y = McShort;;decode;
+    velocity_z = McShort;;decode;
 }
 
 minecraft_struct! { SpawnExperienceOrb
-    entity_id = VarInt;encode;;decode;
-    x = McDouble;encode;;decode;
-    y = McDouble;encode;;decode;
-    z = McDouble;encode;;decode;
-    count = McShort;encode;;decode;
+    entity_id = VarInt;;decode;
+    x = McDouble;;decode;
+    y = McDouble;;decode;
+    z = McDouble;;decode;
+    count = McShort;;decode;
 }
 
 minecraft_struct! { SpawnLivingEntity
-    entity_id = VarInt;encode;;decode;
-    uuid = McUuid;encode;;decode;
-    entity_type = VarInt;encode;;decode;
-    x = McDouble;encode;;decode;
-    y = McDouble;encode;;decode;
-    z = McDouble;encode;;decode;
-    yaw = Angle;encode;;decode;
-    pitch = Angle;encode;;decode;
-    head_pitch = Angle;encode;;decode;
-    velocity_x = McShort;encode;;decode;
-    velocity_y = McShort;encode;;decode;
-    velocity_z = McShort;encode;;decode;
+    entity_id = VarInt;;decode;
+    uuid = McUuid;;decode;
+    entity_type = VarInt;;decode;
+    x = McDouble;;decode;
+    y = McDouble;;decode;
+    z = McDouble;;decode;
+    yaw = Angle;;decode;
+    pitch = Angle;;decode;
+    head_pitch = Angle;;decode;
+    velocity_x = McShort;;decode;
+    velocity_y = McShort;;decode;
+    velocity_z = McShort;;decode;
 }
 
 minecraft_struct! { SpawnPainting
-    entity_id = VarInt;encode;;decode;
-    uuid = McUuid;encode;;decode;
-    motive = VarInt;encode;;decode;
-    location = Position;encode;;decode;
-    direction = McByte;encode;;decode;
+    entity_id = VarInt;;decode;
+    uuid = McUuid;;decode;
+    motive = VarInt;;decode;
+    location = Position;;decode;
+    direction = McByte;;decode;
 }
 
 minecraft_struct! { SpawnPlayer
-    entity_id = VarInt;encode;;decode;
-    uuid = McUuid;encode;;decode;
-    x = McDouble;encode;;decode;
-    y = McDouble;encode;;decode;
-    z = McDouble;encode;;decode;
-    yaw = Angle;encode;;decode;
-    pitch = Angle;encode;;decode;
+    entity_id = VarInt;;decode;
+    uuid = McUuid;;decode;
+    x = McDouble;;decode;
+    y = McDouble;;decode;
+    z = McDouble;;decode;
+    yaw = Angle;;decode;
+    pitch = Angle;;decode;
 }
 
 minecraft_struct! { SculkVibrationSignalBlock
-    source_position = Position;encode;;decode;
-    destination_identifier = Identifier;encode;;decode;
-    destination = Position;encode;;decode;
-    arrival_ticks = VarInt;encode;;decode;
+    source_position = Position;;decode;
+    destination_identifier = Identifier;;decode;
+    destination = Position;;decode;
+    arrival_ticks = VarInt;;decode;
 }
 
 minecraft_struct! { SculkVibrationSignalEntity
-    source_position = Position;encode;;decode;
-    destination_identifier = Identifier;encode;;decode;
-    destination = VarInt;encode;;decode;
-    arrival_ticks = VarInt;encode;;decode;
+    source_position = Position;;decode;
+    destination_identifier = Identifier;;decode;
+    destination = VarInt;;decode;
+    arrival_ticks = VarInt;;decode;
 }
 
 minecraft_struct! { EntityAnimation
-    entity_id = VarInt;encode;;decode;
-    animation = McUnsignedByte;encode;;decode;
+    entity_id = VarInt;;decode;
+    animation = McUnsignedByte;;decode;
 }
 
 minecraft_struct! { Statistics
-    count = VarInt;encode;;decode;
-    statistic = Vec<VarInt>;encode_arr;Decoder;decode_arr VarInt::from(*count);
+    count = VarInt;;decode;
+    statistic = Vec<VarInt>;Decoder;decode_arr VarInt::from(*count);
 }
 
 minecraft_struct! { AcknowledgePlayerDigging
-    location = Position;encode;;decode;
-    block = VarInt;encode;;decode;
-    status = VarInt;encode;;decode;
-    successful = McBoolean;encode;;decode;
+    location = Position;;decode;
+    block = VarInt;;decode;
+    status = VarInt;;decode;
+    successful = McBoolean;;decode;
 }
 
 minecraft_struct! { BlockBreakAnimation
-    entity_id = VarInt;encode;;decode;
-    location = VarInt;encode;;decode;
-    destroy_stage = McByte;encode;;decode;
+    entity_id = VarInt;;decode;
+    location = VarInt;;decode;
+    destroy_stage = McByte;;decode;
 }
 
 minecraft_struct! { BlockEntityData
-    location = Position;encode;;decode;
-    action = McUnsignedByte;encode;;decode;
-    nbt_data = NbtTag;encode;;decode;
+    location = Position;;decode;
+    action = McUnsignedByte;;decode;
+    nbt_data = NbtTag;;decode;
 }
 
 minecraft_struct! { BlockAction
-    location = Position;encode;;decode;
-    action_id = McUnsignedByte;encode;;decode;
-    action_param = McUnsignedByte;encode;;decode;
-    block_type = VarInt;encode;;decode;
+    location = Position;;decode;
+    action_id = McUnsignedByte;;decode;
+    action_param = McUnsignedByte;;decode;
+    block_type = VarInt;;decode;
 }
 
 minecraft_struct! { BlockChange
-    location = Position;encode;;decode;
-    block_id = VarInt;encode;;decode;
+    location = Position;;decode;
+    block_id = VarInt;;decode;
 }
 
 // todo Boss Bar (https://wiki.vg/Protocol#Boss_Bar)
 
 minecraft_struct! { ServerDifficulty
-    difficulty = McUnsignedByte;encode;;decode;
-    difficulty_locked = McBoolean;encode;;decode;
+    difficulty = McUnsignedByte;;decode;
+    difficulty_locked = McBoolean;;decode;
 }
 
 minecraft_struct! { ChatMessage
-    chat_json = ChatJson;encode;;decode;
-    position = McByte;encode;;decode;
-    sender = McUuid;encode;;decode;
+    chat_json = ChatJson;;decode;
+    position = McByte;;decode;
+    sender = McUuid;;decode;
 }
 
 minecraft_struct! { ClearTitles
-    reset = McBoolean;encode;;decode;
+    reset = McBoolean;;decode;
 }
 
 // todo Tab-Complete (https://wiki.vg/Protocol#Tab-Complete_.28clientbound.29)
@@ -135,492 +136,490 @@ minecraft_struct! { ClearTitles
 // todo Declare Commands (https://wiki.vg/Protocol#Declare_Commands)
 
 minecraft_struct! { CloseWindow
-    window_id = McUnsignedByte;encode;;decode;
+    window_id = McUnsignedByte;;decode;
 }
 
 minecraft_struct! { WindowItems
-    window_id = McUnsignedByte;encode;;decode;
-    state_id = VarInt;encode;;decode;
-    count = VarInt;encode;;decode;
-    slot_data = Vec<SlotData>;encode_arr;Decoder;decode_arr VarInt::from(*count);
+    window_id = McUnsignedByte;;decode;
+    state_id = VarInt;;decode;
+    count = VarInt;;decode;
+    slot_data = Vec<SlotData>;Decoder;decode_arr VarInt::from(*count);
 }
 
 minecraft_struct! { WindowProperty
-    window_id = McUnsignedByte;encode;;decode;
-    property = McShort;encode;;decode;
-    value = McShort;encode;;decode;
+    window_id = McUnsignedByte;;decode;
+    property = McShort;;decode;
+    value = McShort;;decode;
 }
 
 minecraft_struct! { SetSlot
-    window_id = McUnsignedByte;encode;;decode;
-    state_id = VarInt;encode;;decode;
-    slot = McShort;encode;;decode;
-    slot_data = SlotData;encode;;decode;
+    window_id = McUnsignedByte;;decode;
+    state_id = VarInt;;decode;
+    slot = McShort;;decode;
+    slot_data = SlotData;;decode;
 }
 
 minecraft_struct! { SetCooldown
-    item_id = VarInt;encode;;decode;
-    cooldown_ticks = VarInt;encode;;decode;
+    item_id = VarInt;;decode;
+    cooldown_ticks = VarInt;;decode;
 }
 
 minecraft_struct! { PluginMessage
-    channel = Identifier;encode;;decode;
-    data = Vec<McUnsignedByte>;encode_arr;Decoder;decode_to_end;
+    channel = Identifier;;decode;
+    data = Vec<McUnsignedByte>;Decoder;decode_to_end;
 }
 
 minecraft_struct! { NamedSoundEffect
-    sound_name = Identifier;encode;;decode;
-    sound_category = VarInt;encode;;decode;
-    effect_position_x = McInteger;encode;;decode;
-    effect_position_y = McInteger;encode;;decode;
-    effect_position_z = McInteger;encode;;decode;
-    volume = McFloat;encode;;decode;
-    pitch = McFloat;encode;;decode;
+    sound_name = Identifier;;decode;
+    sound_category = VarInt;;decode;
+    effect_position_x = McInteger;;decode;
+    effect_position_y = McInteger;;decode;
+    effect_position_z = McInteger;;decode;
+    volume = McFloat;;decode;
+    pitch = McFloat;;decode;
 }
 
 minecraft_struct! { Disconnect
-    reason = ChatJson;encode;;decode;
+    reason = ChatJson;;decode;
 }
 
 minecraft_struct! { EntityStatus
-    entity_id = McInteger;encode;;decode;
-    entity_status = McByte;encode;;decode;
+    entity_id = McInteger;;decode;
+    entity_status = McByte;;decode;
 }
 
 minecraft_struct! { Explosion
-    x = McFloat;encode;;decode;
-    y = McFloat;encode;;decode;
-    z = McFloat;encode;;decode;
-    strength = McFloat;encode;;decode;
-    record_count = VarInt;encode;;decode;
-    records = Vec<(McUnsignedByte, McUnsignedByte, McUnsignedByte)>;encode_arr;Decoder;decode_arr VarInt::from(*record_count);
-    player_motion_x = McFloat;encode;;decode;
-    player_motion_y = McFloat;encode;;decode;
-    player_motion_z = McFloat;encode;;decode;
+    x = McFloat;;decode;
+    y = McFloat;;decode;
+    z = McFloat;;decode;
+    strength = McFloat;;decode;
+    record_count = VarInt;;decode;
+    records = Vec<(McUnsignedByte, McUnsignedByte, McUnsignedByte)>;Decoder;decode_arr VarInt::from(*record_count);
+    player_motion_x = McFloat;;decode;
+    player_motion_y = McFloat;;decode;
+    player_motion_z = McFloat;;decode;
 }
 
 minecraft_struct! { UnloadChunk
-    chunk_x = McInteger;encode;;decode;
-    chunk_z = McInteger;encode;;decode;
+    chunk_x = McInteger;;decode;
+    chunk_z = McInteger;;decode;
 }
 
 minecraft_struct! { ChangeGameState
-    reason = McUnsignedByte;encode;;decode;
-    value = McFloat;encode;;decode;
+    reason = McUnsignedByte;;decode;
+    value = McFloat;;decode;
 }
 
 minecraft_struct! { OpenHorseWindow
-    window_id = McByte;encode;;decode;
-    number_of_slots = VarInt;encode;;decode;
-    entity_id = McInteger;encode;;decode;
+    window_id = McByte;;decode;
+    number_of_slots = VarInt;;decode;
+    entity_id = McInteger;;decode;
 }
 
 minecraft_struct! { InitializeWorldBorder
-    x = McDouble;encode;;decode;
-    z = McDouble;encode;;decode;
-    old_diameter = McDouble;encode;;decode;
-    new_diameter = McDouble;encode;;decode;
-    speed = VarLong;encode;;decode;
-    portal_teleport_boundary = VarInt;encode;;decode;
-    warning_blocks = VarInt;encode;;decode;
-    warning_time = VarInt;encode;;decode;
+    x = McDouble;;decode;
+    z = McDouble;;decode;
+    old_diameter = McDouble;;decode;
+    new_diameter = McDouble;;decode;
+    speed = VarLong;;decode;
+    portal_teleport_boundary = VarInt;;decode;
+    warning_blocks = VarInt;;decode;
+    warning_time = VarInt;;decode;
 }
 
 minecraft_struct! { KeepAlive
-    keep_alive_id = McLong;encode;;decode;
+    keep_alive_id = McLong;;decode;
 }
 
 minecraft_struct! { ChunkData
-    chunk_x = McInteger;encode;;decode;
-    chunk_z = McInteger;encode;;decode;
-    bit_mask_length = VarInt;encode;;decode;
-    primary_bit_mask = Vec<McLong>;encode_arr;Decoder;decode_arr VarInt::from(*bit_mask_length);
-    height_maps = NbtTag;encode;;decode;
-    biomes_length = VarInt;encode;;decode;
-    biomes = Vec<VarInt>;encode_arr;Decoder;decode_arr VarInt::from(*biomes_length);
-    size = VarInt;encode;;decode;
-    data = Vec<McByte>;encode_arr;Decoder;decode_arr VarInt::from(*size);
-    number_of_block_entities = VarInt;encode;;decode;
-    block_entities = Vec<NbtTag>;encode_arr;Decoder;decode_arr VarInt::from(*number_of_block_entities);
+    chunk_x = McInteger;;decode;
+    chunk_z = McInteger;;decode;
+    bit_mask_length = VarInt;;decode;
+    primary_bit_mask = Vec<McLong>;Decoder;decode_arr VarInt::from(*bit_mask_length);
+    height_maps = NbtTag;;decode;
+    biomes_length = VarInt;;decode;
+    biomes = Vec<VarInt>;Decoder;decode_arr VarInt::from(*biomes_length);
+    size = VarInt;;decode;
+    data = Vec<McByte>;Decoder;decode_arr VarInt::from(*size);
+    number_of_block_entities = VarInt;;decode;
+    block_entities = Vec<NbtTag>;Decoder;decode_arr VarInt::from(*number_of_block_entities);
 }
 
 minecraft_struct! { Effect
-    effect_id = McInteger;encode;;decode;
-    location = Position;encode;;decode;
-    data = McInteger;encode;;decode;
-    disable_relative_volume = McBoolean;encode;;decode;
+    effect_id = McInteger;;decode;
+    location = Position;;decode;
+    data = McInteger;;decode;
+    disable_relative_volume = McBoolean;;decode;
 }
 
 // todo Particle (https://wiki.vg/Protocol#Particle_2)
 // todo UpdateLight (https://wiki.vg/Protocol#Update_Light)
 
 minecraft_struct! { JoinGame
-    entity_id = McInteger;encode;;decode;
-    is_hardcore = McBoolean;encode;;decode;
-    gamemode = McUnsignedByte;encode;;decode;
-    previous_gamemode = McByte;encode;;decode;
-    world_count = VarInt;encode;;decode;
-    world_names = Vec<Identifier>;encode_arr;Decoder;decode_arr VarInt::from(*world_count);
-    dimension_codec = NbtTag;encode;;decode;
-    dimension = NbtTag;encode;;decode;
-    world_name = Identifier;encode;;decode;
-    hashed_seed = McLong;encode;;decode;
-    max_players = VarInt;encode;;decode;
-    view_distance = VarInt;encode;;decode;
-    reduced_debug_info = McBoolean;encode;;decode;
-    enable_respawn_screen = McBoolean;encode;;decode;
-    is_debug = McBoolean;encode;;decode;
-    is_flat = McBoolean;encode;;decode;
+    entity_id = McInteger;;decode;
+    is_hardcore = McBoolean;;decode;
+    gamemode = McUnsignedByte;;decode;
+    previous_gamemode = McByte;;decode;
+    world_count = VarInt;;decode;
+    world_names = Vec<Identifier>;Decoder;decode_arr VarInt::from(*world_count);
+    dimension_codec = NbtTag;;decode;
+    dimension = NbtTag;;decode;
+    world_name = Identifier;;decode;
+    hashed_seed = McLong;;decode;
+    max_players = VarInt;;decode;
+    view_distance = VarInt;;decode;
+    reduced_debug_info = McBoolean;;decode;
+    enable_respawn_screen = McBoolean;;decode;
+    is_debug = McBoolean;;decode;
+    is_flat = McBoolean;;decode;
 }
 
 // todo MapData (https://wiki.vg/Protocol#Map_Data)
 // todo TradeList (https://wiki.vg/Protocol#Trade_List)
 
 minecraft_struct! { EntityPosition
-    entity_id = VarInt;encode;;decode;
-    delta_x = McShort;encode;;decode;
-    delta_y = McShort;encode;;decode;
-    delta_z = McShort;encode;;decode;
-    on_ground = McBoolean;encode;;decode;
+    entity_id = VarInt;;decode;
+    delta_x = McShort;;decode;
+    delta_y = McShort;;decode;
+    delta_z = McShort;;decode;
+    on_ground = McBoolean;;decode;
 }
 
 minecraft_struct! { EntityPositionAndRotation
-    entity_id = VarInt;encode;;decode;
-    delta_x = McShort;encode;;decode;
-    delta_y = McShort;encode;;decode;
-    delta_z = McShort;encode;;decode;
-    yaw = Angle;encode;;decode;
-    pitch = Angle;encode;;decode;
-    on_ground = McBoolean;encode;;decode;
+    entity_id = VarInt;;decode;
+    delta_x = McShort;;decode;
+    delta_y = McShort;;decode;
+    delta_z = McShort;;decode;
+    yaw = Angle;;decode;
+    pitch = Angle;;decode;
+    on_ground = McBoolean;;decode;
 }
 
 minecraft_struct! { EntityRotation
-    entity_id = VarInt;encode;;decode;
-    yaw = Angle;encode;;decode;
-    pitch = Angle;encode;;decode;
-    on_ground = McBoolean;encode;;decode;
+    entity_id = VarInt;;decode;
+    yaw = Angle;;decode;
+    pitch = Angle;;decode;
+    on_ground = McBoolean;;decode;
 }
 
 minecraft_struct! { VehicleMove
-    x = McDouble;encode;;decode;
-    y = McDouble;encode;;decode;
-    z = McDouble;encode;;decode;
-    yaw = McFloat;encode;;decode;
-    pitch = McFloat;encode;;decode;
+    x = McDouble;;decode;
+    y = McDouble;;decode;
+    z = McDouble;;decode;
+    yaw = McFloat;;decode;
+    pitch = McFloat;;decode;
 }
 
 minecraft_struct! { OpenBook
-    hand = VarInt;encode;;decode;
+    hand = VarInt;;decode;
 }
 
 minecraft_struct! { OpenWindow
-    window_id = VarInt;encode;;decode;
-    window_type = VarInt;encode;;decode;
-    window_title = ChatJson;encode;;decode;
+    window_id = VarInt;;decode;
+    window_type = VarInt;;decode;
+    window_title = ChatJson;;decode;
 }
 
 minecraft_struct! { OpenSignEditor
-    location = Position;encode;;decode;
+    location = Position;;decode;
 }
 
 minecraft_struct! { Ping
-    id = McInteger;encode;;decode;
+    id = McInteger;;decode;
 }
 
 minecraft_struct! { CraftRecipeResponse
-    window_id = McByte;encode;;decode;
-    recipe = Identifier;encode;;decode;
+    window_id = McByte;;decode;
+    recipe = Identifier;;decode;
 }
 
 minecraft_struct! { PlayerAbilities
-    flags = McByte;encode;;decode;
-    flying_speed = McFloat;encode;;decode;
-    field_of_view_modifier = McFloat;encode;;decode;
+    flags = McByte;;decode;
+    flying_speed = McFloat;;decode;
+    field_of_view_modifier = McFloat;;decode;
 }
 
 minecraft_struct! { EndCombatEvent
-    duration = VarInt;encode;;decode;
-    entity_id = McInteger;encode;;decode;
+    duration = VarInt;;decode;
+    entity_id = McInteger;;decode;
 }
 
 minecraft_struct!(EnterCombatEvent);
 
 minecraft_struct! { DeathCombatEvent
-    player_id = VarInt;encode;;decode;
-    entity_id = McInteger;encode;;decode;
-    message = ChatJson;encode;;decode;
+    player_id = VarInt;;decode;
+    entity_id = McInteger;;decode;
+    message = ChatJson;;decode;
 }
 
 // todo PlayerInfo (https://wiki.vg/Protocol#Player_Info)
 
 minecraft_struct! { FacePlayer
-    feet_eyes = VarInt;encode;;decode;
-    target_x = McDouble;encode;;decode;
-    target_y = McDouble;encode;;decode;
-    target_z = McDouble;encode;;decode;
-    is_entity = McBoolean;encode;;decode;
-    entity_id = Option<VarInt>;encode_if;Decoder;decode_if *is_entity;
-    entity_feet_eyes = Option<VarInt>;encode_if;Decoder;decode_if *is_entity;
+    feet_eyes = VarInt;;decode;
+    target_x = McDouble;;decode;
+    target_y = McDouble;;decode;
+    target_z = McDouble;;decode;
+    is_entity = McBoolean;;decode;
+    entity_id = Option<VarInt>;Decoder;decode_if *is_entity;
+    entity_feet_eyes = Option<VarInt>;Decoder;decode_if *is_entity;
 }
 
 minecraft_struct! { PlayerPositionAndLook
-    x = McDouble;encode;;decode;
-    y = McDouble;encode;;decode;
-    z = McDouble;encode;;decode;
-    yaw = McFloat;encode;;decode;
-    pitch = McFloat;encode;;decode;
-    flags = McByte;encode;;decode;
-    teleport_id = VarInt;encode;;decode;
-    dismount_vehicle = McBoolean;encode;;decode;
+    x = McDouble;;decode;
+    y = McDouble;;decode;
+    z = McDouble;;decode;
+    yaw = McFloat;;decode;
+    pitch = McFloat;;decode;
+    flags = McByte;;decode;
+    teleport_id = VarInt;;decode;
+    dismount_vehicle = McBoolean;;decode;
 }
 
 minecraft_struct! { UnlockRecipes
-    action = VarInt;encode;;decode;
-    crafting_recipe_book_open = McBoolean;encode;;decode;
-    crafting_recipe_book_filter_active = McBoolean;encode;;decode;
-    smelting_recipe_book_open = McBoolean;encode;;decode;
-    smelting_recipe_book_filter_active = McBoolean;encode;;decode;
-    blast_furnace_recipe_book_open = McBoolean;encode;;decode;
-    blast_furnace_recipe_book_filter_active = McBoolean;encode;;decode;
-    smoker_recipe_book_open = McBoolean;encode;;decode;
-    smoker_recipe_book_filter_active = McBoolean;encode;;decode;
-    arr_size_1 = VarInt;encode;;decode;
-    recipe_ids = Vec<Identifier>;encode_arr;Decoder;decode_arr VarInt::from(*arr_size_1);
-    arr_size_2 = Option<VarInt>;encode_if;Decoder;decode_if *action == 0;
-    recipe_ids_2 = Option<Vec<Identifier>>;encode_arr_if;Decoder;decode_arr_if *action == 0 VarInt::from(*arr_size_2.as_ref().unwrap());
+    action = VarInt;;decode;
+    crafting_recipe_book_open = McBoolean;;decode;
+    crafting_recipe_book_filter_active = McBoolean;;decode;
+    smelting_recipe_book_open = McBoolean;;decode;
+    smelting_recipe_book_filter_active = McBoolean;;decode;
+    blast_furnace_recipe_book_open = McBoolean;;decode;
+    blast_furnace_recipe_book_filter_active = McBoolean;;decode;
+    smoker_recipe_book_open = McBoolean;;decode;
+    smoker_recipe_book_filter_active = McBoolean;;decode;
+    arr_size_1 = VarInt;;decode;
+    recipe_ids = Vec<Identifier>;Decoder;decode_arr VarInt::from(*arr_size_1);
+    arr_size_2 = Option<VarInt>;Decoder;decode_if *action == 0;
+    recipe_ids_2 = Option<Vec<Identifier>>;Decoder;decode_arr_if *action == 0 VarInt::from(*arr_size_2.as_ref().unwrap());
 }
 
 minecraft_struct! { DestroyEntities
-    count = VarInt;encode;;decode;
-    entity_ids = Vec<VarInt>;encode_arr;Decoder;decode_arr VarInt::from(*count);
+    count = VarInt;;decode;
+    entity_ids = Vec<VarInt>;Decoder;decode_arr VarInt::from(*count);
 }
 
 minecraft_struct! { RemoveEntityEffect
-    entity_id = VarInt;encode;;decode;
-    effect_id = McByte;encode;;decode;
+    entity_id = VarInt;;decode;
+    effect_id = McByte;;decode;
 }
 
 minecraft_struct! { ResourcePackSend
-    url = McString;encode;;decode 32767;
-    hash = McString;encode;;decode 40;
-    forced = McBoolean;encode;;decode;
-    has_prompt_message = McBoolean;encode;;decode;
-    prompt_message = Option<ChatJson>;encode_if;Decoder;decode_if *has_prompt_message;
+    url = McString;;decode 32767;
+    hash = McString;;decode 40;
+    forced = McBoolean;;decode;
+    has_prompt_message = McBoolean;;decode;
+    prompt_message = Option<ChatJson>;Decoder;decode_if *has_prompt_message;
 }
 
 minecraft_struct! { Respawn
-    dimension = NbtTag;encode;;decode;
-    world_name = Identifier;encode;;decode;
-    hashed_seed = McLong;encode;;decode;
-    gamemode = McUnsignedByte;encode;;decode;
-    previous_gamemode = McUnsignedByte;encode;;decode;
-    is_debug = McBoolean;encode;;decode;
-    is_flat = McBoolean;encode;;decode;
-    copy_metadata = McBoolean;encode;;decode;
+    dimension = NbtTag;;decode;
+    world_name = Identifier;;decode;
+    hashed_seed = McLong;;decode;
+    gamemode = McUnsignedByte;;decode;
+    previous_gamemode = McUnsignedByte;;decode;
+    is_debug = McBoolean;;decode;
+    is_flat = McBoolean;;decode;
+    copy_metadata = McBoolean;;decode;
 }
 
 minecraft_struct! { EntityHeadLook
-    entity_id = VarInt;encode;;decode;
-    head_yaw = Angle;encode;;decode;
+    entity_id = VarInt;;decode;
+    head_yaw = Angle;;decode;
 }
 
 minecraft_struct! { MultiBlockChange
-    chunk_section_position = McLong;encode;;decode;
-    trust_edges_change = McBoolean;encode;;decode;
-    blocks_array_size = VarInt;encode;;decode;
-    blocks = Vec<VarLong>;encode_arr;Decoder;decode_arr VarInt::from(*blocks_array_size);
+    chunk_section_position = McLong;;decode;
+    trust_edges_change = McBoolean;;decode;
+    blocks_array_size = VarInt;;decode;
+    blocks = Vec<VarLong>;Decoder;decode_arr VarInt::from(*blocks_array_size);
 }
 
 minecraft_struct! { SelectAdvancementTab
-    has_id = McBoolean;encode;;decode;
-    optional_identifier = Option<McString>;encode_if;Decoder;decode_str_if *has_id VarInt::from(32767);
+    has_id = McBoolean;;decode;
+    optional_identifier = Option<McString>;Decoder;decode_str_if *has_id VarInt::from(32767);
 }
 
 minecraft_struct! { ActionBar
-    action_bar_text = ChatJson;encode;;decode;
+    action_bar_text = ChatJson;;decode;
 }
 
 minecraft_struct! { WorldBorderCenter
-    x = McDouble;encode;;decode;
-    z = McDouble;encode;;decode;
+    x = McDouble;;decode;
+    z = McDouble;;decode;
 }
 
 minecraft_struct! { WorldBorderLerpSize
-    old_diameter = McDouble;encode;;decode;
-    new_diameter = McDouble;encode;;decode;
-    speed = VarLong;encode;;decode;
+    old_diameter = McDouble;;decode;
+    new_diameter = McDouble;;decode;
+    speed = VarLong;;decode;
 }
 
 minecraft_struct! { WorldBorderSize
-    diameter = McDouble;encode;;decode;
+    diameter = McDouble;;decode;
 }
 
 minecraft_struct! { WorldBorderWarningDelay
-    warning_time = VarInt;encode;;decode;
+    warning_time = VarInt;;decode;
 }
 
 minecraft_struct! { WorldBorderWarningReach
-    warning_blocks = VarInt;encode;;decode;
+    warning_blocks = VarInt;;decode;
 }
 
 minecraft_struct! { Camera
-    camera_id = VarInt;encode;;decode;
+    camera_id = VarInt;;decode;
 }
 
 minecraft_struct! { HeldItemChange
-    slot = McByte;encode;;decode;
+    slot = McByte;;decode;
 }
 
 minecraft_struct! { UpdateViewPosition
-    chunk_x = VarInt;encode;;decode;
-    chunk_z = VarInt;encode;;decode;
+    chunk_x = VarInt;;decode;
+    chunk_z = VarInt;;decode;
 }
 
 minecraft_struct! { UpdateViewDistance
-    view_distance = VarInt;encode;;decode;
+    view_distance = VarInt;;decode;
 }
 
 minecraft_struct! { SpawnPosition
-    location = Position;encode;;decode;
-    angle = McFloat;encode;;decode;
+    location = Position;;decode;
+    angle = McFloat;;decode;
 }
 
 minecraft_struct! { DisplayScoreboard
-    position = McByte;encode;;decode;
-    score_name = McString;encode;;decode 16;
+    position = McByte;;decode;
+    score_name = McString;;decode 16;
 }
 
 // todo EntityMetadata (https://wiki.vg/Protocol#Entity_Metadata)
 
 minecraft_struct! { AttachEntity
-    attached_entity_id = McInteger;encode;;decode;
-    holding_entity_id = McInteger;encode;;decode;
+    attached_entity_id = McInteger;;decode;
+    holding_entity_id = McInteger;;decode;
 }
 
 minecraft_struct! { EntityVelocity
-    entity_id = VarInt;encode;;decode;
-    velocity_x = McShort;encode;;decode;
-    velocity_y = McShort;encode;;decode;
-    velocity_z = McShort;encode;;decode;
+    entity_id = VarInt;;decode;
+    velocity_x = McShort;;decode;
+    velocity_y = McShort;;decode;
+    velocity_z = McShort;;decode;
 }
 
 // todo EntityEquipment (https://wiki.vg/Protocol#Entity_Equipment)
 
 minecraft_struct! { SetExperience
-    experience_bar = McFloat;encode;;decode;
-    level = VarInt;encode;;decode;
-    total_experience = VarInt;encode;;decode;
+    experience_bar = McFloat;;decode;
+    level = VarInt;;decode;
+    total_experience = VarInt;;decode;
 }
 
 minecraft_struct! { UpdateHealth
-    health = McFloat;encode;;decode;
-    food = VarInt;encode;;decode;
-    food_saturation = McFloat;encode;;decode;
+    health = McFloat;;decode;
+    food = VarInt;;decode;
+    food_saturation = McFloat;;decode;
 }
 
 minecraft_struct! { ScoreboardObjective
-    objective_name = McString;encode;;decode 16;
-    mode = McByte;encode;;decode;
-    objective_value = Option<ChatJson>;encode_if;Decoder;decode_if *mode == 0 || *mode == 1;
-    objective_type = Option<VarInt>;encode_if;Decoder;decode_if *mode == 0 || *mode == 1;
+    objective_name = McString;;decode 16;
+    mode = McByte;;decode;
+    objective_value = Option<ChatJson>;Decoder;decode_if *mode == 0 || *mode == 1;
+    objective_type = Option<VarInt>;Decoder;decode_if *mode == 0 || *mode == 1;
 }
 
 minecraft_struct! { SetPassengers
-    entity_id = VarInt;encode;;decode;
-    passenger_count = VarInt;encode;;decode;
-    passengers = Vec<VarInt>;encode_arr;Decoder;decode_arr VarInt::from(*passenger_count);
+    entity_id = VarInt;;decode;
+    passenger_count = VarInt;;decode;
+    passengers = Vec<VarInt>;Decoder;decode_arr VarInt::from(*passenger_count);
 }
 
 // todo Teams (https://wiki.vg/Protocol#Teams)
 
 minecraft_struct! { UpdateScore
-    entity_name = McString;encode;;decode 40;
-    action = McByte;encode;;decode;
-    objective_name = McString;encode;;decode 16;
-    value = Option<VarInt>;encode_if;Decoder;decode_if *action != 1;
+    entity_name = McString;;decode 40;
+    action = McByte;;decode;
+    objective_name = McString;;decode 16;
+    value = Option<VarInt>;Decoder;decode_if *action != 1;
 }
 
 minecraft_struct! { SetTitleSubtitle
-    subtitle_text = ChatJson;encode;;decode;
+    subtitle_text = ChatJson;;decode;
 }
 
 minecraft_struct! { TimeUpdate
-    world_age = McLong;encode;;decode;
-    time_of_date = McLong;encode;;decode;
+    world_age = McLong;;decode;
+    time_of_date = McLong;;decode;
 }
 
 minecraft_struct! { SetTitleText
-    title_text = ChatJson;encode;;decode;
+    title_text = ChatJson;;decode;
 }
 
 minecraft_struct! { SetTitleTimes
-    fade_in = McInteger;encode;;decode;
-    stay = McInteger;encode;;decode;
-    fade_out = McInteger;encode;;decode;
+    fade_in = McInteger;;decode;
+    stay = McInteger;;decode;
+    fade_out = McInteger;;decode;
 }
 
 minecraft_struct! { EntitySoundEffect
-    sound_id = VarInt;encode;;decode;
-    sound_category = VarInt;encode;;decode;
-    entity_id = VarInt;encode;;decode;
-    volume = McFloat;encode;;decode;
-    pitch = McFloat;encode;;decode;
+    sound_id = VarInt;;decode;
+    sound_category = VarInt;;decode;
+    entity_id = VarInt;;decode;
+    volume = McFloat;;decode;
+    pitch = McFloat;;decode;
 }
 
 minecraft_struct! { SoundEffect
-    sound_id = VarInt;encode;;decode;
-    sound_category = VarInt;encode;;decode;
-    effect_position_x = McInteger;encode;;decode;
-    effect_position_y = McInteger;encode;;decode;
-    effect_position_z = McInteger;encode;;decode;
-    volume = McFloat;encode;;decode;
-    pitch = McFloat;encode;;decode;
+    sound_id = VarInt;;decode;
+    sound_category = VarInt;;decode;
+    effect_position_x = McInteger;;decode;
+    effect_position_y = McInteger;;decode;
+    effect_position_z = McInteger;;decode;
+    volume = McFloat;;decode;
+    pitch = McFloat;;decode;
 }
 
 minecraft_struct! { StopSound
-    flags = McByte;encode;;decode;
-    source = Option<VarInt>;encode_if;Decoder;decode_if *flags == 3 || *flags == 1;
-    sound = Option<VarInt>;encode_if;Decoder;decode_if *flags == 2 || *flags == 3;
+    flags = McByte;;decode;
+    source = Option<VarInt>;Decoder;decode_if *flags == 3 || *flags == 1;
+    sound = Option<VarInt>;Decoder;decode_if *flags == 2 || *flags == 3;
 }
 
 minecraft_struct! { PlayerListHeaderAndFooter
-    header = ChatJson;encode;;decode;
-    footer = ChatJson;encode;;decode;
+    header = ChatJson;;decode;
+    footer = ChatJson;;decode;
 }
 
 minecraft_struct! { NbtQueryResponse
-    transaction_id = VarInt;encode;;decode;
-    nbt = NbtTag;encode;;decode;
+    transaction_id = VarInt;;decode;
+    nbt = NbtTag;;decode;
 }
 
 minecraft_struct! { CollectItem
-    collected_entity_id = VarInt;encode;;decode;
-    collector_entity_id = VarInt;encode;;decode;
-    pickup_item_count = VarInt;encode;;decode;
+    collected_entity_id = VarInt;;decode;
+    collector_entity_id = VarInt;;decode;
+    pickup_item_count = VarInt;;decode;
 }
 
 minecraft_struct! { EntityTeleport
-    entity_id = VarInt;encode;;decode;
-    x = McDouble;encode;;decode;
-    y = McDouble;encode;;decode;
-    z = McDouble;encode;;decode;
-    yaw = Angle;encode;;decode;
-    pitch = Angle;encode;;decode;
-    on_ground = McBoolean;encode;;decode;
+    entity_id = VarInt;;decode;
+    x = McDouble;;decode;
+    y = McDouble;;decode;
+    z = McDouble;;decode;
+    yaw = Angle;;decode;
+    pitch = Angle;;decode;
+    on_ground = McBoolean;;decode;
 }
 
 // todo Advancements (https://wiki.vg/Protocol#Advancements)
 // todo EntityProperties (https://wiki.vg/Protocol#Entity_Properties)
 
 minecraft_struct! { EntityEffect
-    entity_id = VarInt;encode;;decode;
-    effect_id = McByte;encode;;decode;
-    amplifier = McByte;encode;;decode;
-    duration = VarInt;encode;;decode;
-    flags = McByte;encode;;decode;
+    entity_id = VarInt;;decode;
+    effect_id = McByte;;decode;
+    amplifier = McByte;;decode;
+    duration = VarInt;;decode;
+    flags = McByte;;decode;
 }
 
 // todo DeclareRecipes (https://wiki.vg/Protocol#Declare_Recipes)
 // todo Tags (https://wiki.vg/Protocol#Tags)
-
-

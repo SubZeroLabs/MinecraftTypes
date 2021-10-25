@@ -21,7 +21,7 @@ macro_rules! minecraft_struct {
             }
         }
     };
-    {$packet_name:ident $($field:ident = $field_type:path; $encoder_func:ident; $($decoder_path:path)?; $decoder_func:ident $($param:expr)*;)*} => {
+    {$packet_name:ident $($field:ident = $field_type:path; $($decoder_path:path)?; $decoder_func:ident $($param:expr)*;)*} => {
         pub struct $packet_name {
             $(pub $field: $field_type,)*
         }
@@ -29,7 +29,7 @@ macro_rules! minecraft_struct {
         impl crate::Encodable for $packet_name {
             fn encode(&self) -> crate::Result<Vec<u8>> {
                 let mut encoder = crate::Encoder::new();
-                $(encoder.$encoder_func(&self.$field)?;)*
+                $(encoder.encode(&self.$field)?;)*
                 Ok(encoder.into())
             }
         }

@@ -58,7 +58,7 @@ impl Decoder {
 
     pub fn decode_if<T>(bytes: Vec<u8>, predicate: bool) -> Result<(Option<T>, Vec<u8>)>
     where
-        T: Decodable<T>
+        T: Decodable<T>,
     {
         if predicate {
             let (result, remaining) = Decoder::decode::<T>(bytes)?;
@@ -68,9 +68,13 @@ impl Decoder {
         }
     }
 
-    pub fn decode_arr_if<T>(bytes: Vec<u8>, predicate: bool, size: VarInt) -> Result<(Option<Vec<T>>, Vec<u8>)>
+    pub fn decode_arr_if<T>(
+        bytes: Vec<u8>,
+        predicate: bool,
+        size: VarInt,
+    ) -> Result<(Option<Vec<T>>, Vec<u8>)>
     where
-        T: Decodable<T>
+        T: Decodable<T>,
     {
         if predicate {
             let (result, remaining) = Decoder::decode_arr::<T>(bytes, size)?;
@@ -80,7 +84,11 @@ impl Decoder {
         }
     }
 
-    pub fn decode_str_if(bytes: Vec<u8>, predicate: bool, size: VarInt) -> Result<(Option<McString>, Vec<u8>)> {
+    pub fn decode_str_if(
+        bytes: Vec<u8>,
+        predicate: bool,
+        size: VarInt,
+    ) -> Result<(Option<McString>, Vec<u8>)> {
         if predicate {
             let (mc_str, remaining) = McString::decode(bytes, *size as u32)?;
             Ok((Some(mc_str), remaining))
@@ -137,6 +145,35 @@ impl Encoder {
 impl Into<Vec<u8>> for Encoder {
     fn into(self) -> Vec<u8> {
         self.internal_vec.into_inner()
+    }
+}
+
+impl<T> Encodable for Vec<T>
+where
+    T: Encodable,
+{
+    fn encode(&self) -> Result<Vec<u8>> {
+        let mut cursor: std::io::Cursor<Vec<u8>> = std::io::Cursor::<Vec<u8>>::new(Vec::new());
+        for item in self {
+            let mut encoded = item.encode()?;
+            if let Err(_) = cursor.write_all(&mut encoded) {
+                return Err(String::from("Error writing to encoder."));
+            }
+        }
+        Ok(cursor.into_inner())
+    }
+}
+
+impl<T> Encodable for Option<T>
+where
+    T: Encodable,
+{
+    fn encode(&self) -> Result<Vec<u8>> {
+        if let Some(internal) = self {
+            internal.encode()
+        } else {
+            Ok(vec![])
+        }
     }
 }
 
