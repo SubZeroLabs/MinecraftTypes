@@ -17,6 +17,29 @@ pub trait Encodable {
     fn encode(&self) -> Result<Vec<u8>>;
 }
 
+pub struct Decoder;
+
+impl Decoder {
+    pub fn decode<T>(bytes: Vec<u8>) -> Result<(T, Vec<u8>)>
+        where T: Decodable<T>
+    {
+        T::decode(bytes)
+    }
+
+    pub fn decode_arr<T>(bytes: Vec<u8>, size: VarInt) -> Result<(Vec<T>, Vec<u8>)>
+        where T: Decodable<T>
+    {
+        let mut result = Vec::new();
+        let mut remaining = bytes;
+        for _ in 0..*size {
+            let (output, leftover) = Decoder::decode::<T>(remaining)?;
+            result.push(output);
+            remaining = leftover;
+        }
+        Ok((result, remaining))
+    }
+}
+
 pub struct Encoder {
     internal_vec: std::io::Cursor<Vec<u8>>,
 }
@@ -45,7 +68,7 @@ impl Encoder {
         }
     }
 
-    pub fn encode_arr(&mut self, encodable: Vec<&impl Encodable>) -> Result<()> {
+    pub fn encode_arr(&mut self, encodable: &Vec<impl Encodable>) -> Result<()> {
         for item in encodable {
             self.encode(item)?
         }
