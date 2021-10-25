@@ -21,13 +21,15 @@ pub struct Decoder;
 
 impl Decoder {
     pub fn decode<T>(bytes: Vec<u8>) -> Result<(T, Vec<u8>)>
-        where T: Decodable<T>
+    where
+        T: Decodable<T>,
     {
         T::decode(bytes)
     }
 
     pub fn decode_arr<T>(bytes: Vec<u8>, size: VarInt) -> Result<(Vec<T>, Vec<u8>)>
-        where T: Decodable<T>
+    where
+        T: Decodable<T>,
     {
         let mut result = Vec::new();
         let mut remaining = bytes;
