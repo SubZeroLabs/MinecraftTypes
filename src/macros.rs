@@ -7,7 +7,7 @@ macro_rules! nest_decode {
     };
 }
 
-macro_rules! packet {
+macro_rules! minecraft_struct {
     ($packet_name:ident) => {
         pub struct $packet_name;
         impl crate::Encodable for $packet_name {
@@ -36,7 +36,7 @@ macro_rules! packet {
 
         impl crate::Decodable<$packet_name> for $packet_name {
             fn decode(remaining: Vec<u8>) -> crate::Result<($packet_name, Vec<u8>)> {
-                $(let ($field, remaining) = {
+                $(let ($field, remaining): ($field_type, Vec<u8>) = {
                     nest_decode!($field_type, $($decoder_path)*; decoder);
                     decoder::$decoder_func(remaining, $($param,)*)?
                     // <$field_type>::decode(remaining, $($param,)*)?;

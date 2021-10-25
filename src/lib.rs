@@ -55,6 +55,39 @@ impl Decoder {
         }
         Ok((result, remaining))
     }
+
+    pub fn decode_if<T>(bytes: Vec<u8>, predicate: bool) -> Result<(Option<T>, Vec<u8>)>
+    where
+        T: Decodable<T>
+    {
+        if predicate {
+            let (result, remaining) = Decoder::decode::<T>(bytes)?;
+            Ok((Some(result), remaining))
+        } else {
+            Ok((None, bytes))
+        }
+    }
+
+    pub fn decode_arr_if<T>(bytes: Vec<u8>, predicate: bool, size: VarInt) -> Result<(Option<Vec<T>>, Vec<u8>)>
+    where
+        T: Decodable<T>
+    {
+        if predicate {
+            let (result, remaining) = Decoder::decode_arr::<T>(bytes, size)?;
+            Ok((Some(result), remaining))
+        } else {
+            Ok((None, bytes))
+        }
+    }
+
+    pub fn decode_str_if(bytes: Vec<u8>, predicate: bool, size: VarInt) -> Result<(Option<McString>, Vec<u8>)> {
+        if predicate {
+            let (mc_str, remaining) = McString::decode(bytes, *size as u32)?;
+            Ok((Some(mc_str), remaining))
+        } else {
+            Ok((None, bytes))
+        }
+    }
 }
 
 pub struct Encoder {
@@ -90,6 +123,14 @@ impl Encoder {
             self.encode(item)?
         }
         Ok(())
+    }
+
+    pub fn encode_arr_if(&mut self, encodable: &Option<Vec<impl Encodable>>) -> Result<()> {
+        if let Some(encodable) = encodable {
+            self.encode_arr(encodable)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -161,6 +202,7 @@ impl Encodable
 
 macro_rules! prim_type {
         ($name:ident = $primitive:ty) => {
+            #[derive(Copy, Clone, Debug)]
             pub struct $name($primitive);
 
             impl $name {
