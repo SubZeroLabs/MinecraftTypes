@@ -1,5 +1,7 @@
+use crate::primitive::McLong;
+
 packet!(StatusRequest);
 
 packet! { Ping
-    payload = crate::primitive::McLong;encode;;decode;
+    payload = McLong;encode;;decode;
 }

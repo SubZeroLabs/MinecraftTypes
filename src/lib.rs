@@ -40,6 +40,20 @@ impl Decoder {
         }
         Ok((result, remaining))
     }
+
+    pub fn decode_to_end<T>(bytes: Vec<u8>) -> Result<(Vec<T>, Vec<u8>)>
+    where
+        T: Decodable<T>,
+    {
+        let mut result = Vec::new();
+        let mut remaining = bytes;
+        while remaining.len() > 0 {
+            let (output, leftover) = Decoder::decode::<T>(remaining)?;
+            result.push(output);
+            remaining = leftover;
+        }
+        Ok((result, remaining))
+    }
 }
 
 pub struct Encoder {

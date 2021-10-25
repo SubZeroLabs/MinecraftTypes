@@ -1,7 +1,9 @@
+use crate::{primitive::McLong, McString};
+
 packet! { StatusResponse
-    json_response = crate::McString;encode;;decode 255;
+    json_response = McString;encode;;decode 255;
 }
 
 packet! { Pong
-    payload = crate::primitive::McLong;encode;;decode;
+    payload = McLong;encode;;decode;
 }
