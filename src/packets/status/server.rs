@@ -1,7 +1,7 @@
 use crate::primitive::McLong;
 
-packet!(StatusRequest);
+minecraft_struct!(StatusRequest);
 
-packet! { Ping
+minecraft_struct! { Ping
     payload = McLong;encode;;decode;
 }

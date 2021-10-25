@@ -3,6 +3,7 @@ use std::ops::Deref;
 use uuid::{Builder, Uuid};
 
 #[macro_use]
+pub mod macros;
 pub mod packets;
 
 pub type Result<T> = std::result::Result<T, String>;
@@ -109,6 +110,52 @@ impl Encodable for u8 {
 impl Encodable for [u8] {
     fn encode(&self) -> Result<Vec<u8>> {
         Ok(Vec::from(self))
+    }
+}
+
+impl
+    Decodable<(
+        primitive::McUnsignedByte,
+        primitive::McUnsignedByte,
+        primitive::McUnsignedByte,
+    )>
+    for (
+        primitive::McUnsignedByte,
+        primitive::McUnsignedByte,
+        primitive::McUnsignedByte,
+    )
+{
+    fn decode(
+        bytes: Vec<u8>,
+    ) -> Result<(
+        (
+            primitive::McUnsignedByte,
+            primitive::McUnsignedByte,
+            primitive::McUnsignedByte,
+        ),
+        Vec<u8>,
+    )> {
+        let (items, remaining) = require_bytes(bytes.into_iter(), 3)?;
+        Ok((
+            (
+                primitive::McUnsignedByte::from(items[0]),
+                primitive::McUnsignedByte::from(items[1]),
+                primitive::McUnsignedByte::from(items[2]),
+            ),
+            remaining,
+        ))
+    }
+}
+
+impl Encodable
+    for (
+        primitive::McUnsignedByte,
+        primitive::McUnsignedByte,
+        primitive::McUnsignedByte,
+    )
+{
+    fn encode(&self) -> Result<Vec<u8>> {
+        Ok(Vec::from(vec![*self.0, *self.1, *self.2]))
     }
 }
 

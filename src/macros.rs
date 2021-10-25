@@ -7,7 +7,7 @@ macro_rules! nest_decode {
     };
 }
 
-macro_rules! minecraft_struct {
+macro_rules! packet {
     ($packet_name:ident) => {
         pub struct $packet_name;
         impl crate::Encodable for $packet_name {
@@ -46,8 +46,3 @@ macro_rules! minecraft_struct {
         }
     };
 }
-
-pub mod handshaking;
-pub mod login;
-pub mod play;
-pub mod status;
