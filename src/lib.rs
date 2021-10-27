@@ -1,150 +1,89 @@
-use std::io::Write;
-use std::ops::Deref;
-use uuid::{Builder, Uuid};
+use anyhow::Context;
+use std::io::{Read, Write};
 
 #[macro_use]
 pub mod macros;
+pub mod base_types;
 pub mod packets;
 
-pub type Result<T> = std::result::Result<T, String>;
+pub trait Decodable {
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self>
+    where
+        Self: Sized;
+}
 
-pub trait Decodable<T> {
-    /// Decodes the given bytes into type `T` and returns the decoded type `T` and the remaining bytes.
-    fn decode(bytes: Vec<u8>) -> Result<(T, Vec<u8>)>;
+pub trait SizeDecodable {
+    fn decode(reader: &mut impl Read, size: &VarInt) -> anyhow::Result<Self>
+    where
+        Self: Sized;
 }
 
 pub trait Encodable {
-    /// Encodes struct into a set of bytes to be sent to the client.
-    fn encode(&self) -> Result<Vec<u8>>;
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()>;
 }
 
-pub struct Decoder;
+pub trait SizeEncodable {
+    fn encode(&self, writer: &mut impl Write, size: &VarInt) -> anyhow::Result<()>;
+}
 
-impl Decoder {
-    pub fn decode<T>(bytes: Vec<u8>) -> Result<(T, Vec<u8>)>
-    where
-        T: Decodable<T>,
-    {
-        T::decode(bytes)
-    }
+// primitives
 
-    pub fn decode_arr<T>(bytes: Vec<u8>, size: VarInt) -> Result<(Vec<T>, Vec<u8>)>
-    where
-        T: Decodable<T>,
-    {
-        let mut result = Vec::new();
-        let mut remaining = bytes;
-        for _ in 0..*size {
-            let (output, leftover) = Decoder::decode::<T>(remaining)?;
-            result.push(output);
-            remaining = leftover;
-        }
-        Ok((result, remaining))
-    }
-
-    pub fn decode_to_end<T>(bytes: Vec<u8>) -> Result<(Vec<T>, Vec<u8>)>
-    where
-        T: Decodable<T>,
-    {
-        let mut result = Vec::new();
-        let mut remaining = bytes;
-        while remaining.len() > 0 {
-            let (output, leftover) = Decoder::decode::<T>(remaining)?;
-            result.push(output);
-            remaining = leftover;
-        }
-        Ok((result, remaining))
-    }
-
-    pub fn decode_if<T>(bytes: Vec<u8>, predicate: bool) -> Result<(Option<T>, Vec<u8>)>
-    where
-        T: Decodable<T>,
-    {
-        if predicate {
-            let (result, remaining) = Decoder::decode::<T>(bytes)?;
-            Ok((Some(result), remaining))
+impl Decodable for bool {
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+        let mut into = [0u8; 1];
+        reader
+            .read_exact(&mut into)
+            .context(format!("Failed to read {} from buffer.", stringify!(bool)))?;
+        if &into[0] == &0x0u8 {
+            Ok(false)
+        } else if &into[0] == &0x1u8 {
+            Ok(true)
         } else {
-            Ok((None, bytes))
-        }
-    }
-
-    pub fn decode_arr_if<T>(
-        bytes: Vec<u8>,
-        predicate: bool,
-        size: VarInt,
-    ) -> Result<(Option<Vec<T>>, Vec<u8>)>
-    where
-        T: Decodable<T>,
-    {
-        if predicate {
-            let (result, remaining) = Decoder::decode_arr::<T>(bytes, size)?;
-            Ok((Some(result), remaining))
-        } else {
-            Ok((None, bytes))
-        }
-    }
-
-    pub fn decode_str_if(
-        bytes: Vec<u8>,
-        predicate: bool,
-        size: VarInt,
-    ) -> Result<(Option<McString>, Vec<u8>)> {
-        if predicate {
-            let (mc_str, remaining) = McString::decode(bytes, *size as u32)?;
-            Ok((Some(mc_str), remaining))
-        } else {
-            Ok((None, bytes))
+            anyhow::bail!("Malformed boolean found. Byte {}", &into[0]);
         }
     }
 }
 
-pub struct Encoder {
-    internal_vec: std::io::Cursor<Vec<u8>>,
-}
-
-impl Encoder {
-    pub fn new() -> Self {
-        Encoder {
-            internal_vec: std::io::Cursor::new(Vec::new()),
-        }
-    }
-
-    pub fn encode(&mut self, encodable: &impl Encodable) -> Result<()> {
-        let mut encoded = encodable.encode()?;
-        if let Ok(_) = self.internal_vec.write_all(&mut encoded) {
-            Ok(())
-        } else {
-            Err(String::from("Error writing to encoder."))
-        }
-    }
-
-    pub fn encode_if(&mut self, encodable: &Option<impl Encodable>) -> Result<()> {
-        if let Some(encodable) = encodable {
-            self.encode(encodable)
-        } else {
-            Ok(())
-        }
-    }
-
-    pub fn encode_arr(&mut self, encodable: &Vec<impl Encodable>) -> Result<()> {
-        for item in encodable {
-            self.encode(item)?
-        }
-        Ok(())
-    }
-
-    pub fn encode_arr_if(&mut self, encodable: &Option<Vec<impl Encodable>>) -> Result<()> {
-        if let Some(encodable) = encodable {
-            self.encode_arr(encodable)
-        } else {
-            Ok(())
-        }
+impl Encodable for bool {
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+        writer
+            .write_all(&[*self as u8])
+            .context(format!("Failed to write {} into buffer.", &self))
     }
 }
 
-impl Into<Vec<u8>> for Encoder {
-    fn into(self) -> Vec<u8> {
-        self.internal_vec.into_inner()
+declare_primitives!(
+    |i8;1|
+    |u8;1|
+    |i16;2|
+    |u16;2|
+    |i32;4|
+    |i64;8|
+    |f32;4|
+    |f64;8|
+);
+
+use std::fmt::{Display, Formatter, Result};
+use uuid::{Builder, Uuid};
+declare_variable_number!(VarInt, i32, 35, u32, 0xFFFFFF80);
+declare_variable_number!(VarLong, i64, 70, u64, 0xFFFFFFFFFFFFFF80);
+
+// exported functions
+
+impl<T> Decodable for Vec<T>
+where
+    T: Decodable,
+{
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+        let mut items: Vec<T> = Vec::new();
+        let mut remaining_bytes = Vec::new();
+        let length = reader.read_to_end(&mut remaining_bytes)? as u64;
+        let mut cursor = std::io::Cursor::new(remaining_bytes);
+
+        while cursor.position() < length {
+            items.push(T::decode(&mut cursor)?);
+        }
+        Ok(items)
     }
 }
 
@@ -152,15 +91,47 @@ impl<T> Encodable for Vec<T>
 where
     T: Encodable,
 {
-    fn encode(&self) -> Result<Vec<u8>> {
-        let mut cursor: std::io::Cursor<Vec<u8>> = std::io::Cursor::<Vec<u8>>::new(Vec::new());
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         for item in self {
-            let mut encoded = item.encode()?;
-            if let Err(_) = cursor.write_all(&mut encoded) {
-                return Err(String::from("Error writing to encoder."));
-            }
+            item.encode(writer)?;
         }
-        Ok(cursor.into_inner())
+        Ok(())
+    }
+}
+
+impl<T> SizeDecodable for Vec<T>
+where
+    T: Decodable,
+{
+    fn decode(reader: &mut impl Read, size: &VarInt) -> anyhow::Result<Self> {
+        let mut items = Vec::with_capacity(**size as usize);
+        for _ in 0..**size {
+            items.push(T::decode(reader)?);
+        }
+        Ok(items)
+    }
+}
+
+impl<T> SizeEncodable for Vec<T>
+where
+    T: Encodable,
+{
+    fn encode(&self, writer: &mut impl Write, size: &VarInt) -> anyhow::Result<()> {
+        size.encode(writer)?;
+        for item in self {
+            item.encode(writer)?;
+        }
+        Ok(())
+    }
+}
+
+impl<T> Decodable for Option<T>
+where
+    T: Decodable,
+{
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+        let result = T::decode(reader)?;
+        Ok(Some(result))
     }
 }
 
@@ -168,436 +139,161 @@ impl<T> Encodable for Option<T>
 where
     T: Encodable,
 {
-    fn encode(&self) -> Result<Vec<u8>> {
-        if let Some(internal) = self {
-            internal.encode()
-        } else {
-            Ok(vec![])
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+        if let Some(item) = self {
+            item.encode(writer)?;
         }
+        Ok(())
     }
 }
 
-const UNEXPECTED_EOF: &str = "Unexpected EOF in decoder.";
-
-impl Encodable for u8 {
-    fn encode(&self) -> Result<Vec<u8>> {
-        Ok(vec![*self])
-    }
-}
-
-impl Encodable for [u8] {
-    fn encode(&self) -> Result<Vec<u8>> {
-        Ok(Vec::from(self))
-    }
-}
-
-impl
-    Decodable<(
-        primitive::McUnsignedByte,
-        primitive::McUnsignedByte,
-        primitive::McUnsignedByte,
-    )>
-    for (
-        primitive::McUnsignedByte,
-        primitive::McUnsignedByte,
-        primitive::McUnsignedByte,
-    )
+impl<T> Decodable for (VarInt, T)
+where
+    T: SizeDecodable,
 {
-    fn decode(
-        bytes: Vec<u8>,
-    ) -> Result<(
-        (
-            primitive::McUnsignedByte,
-            primitive::McUnsignedByte,
-            primitive::McUnsignedByte,
-        ),
-        Vec<u8>,
-    )> {
-        let (items, remaining) = require_bytes(bytes.into_iter(), 3)?;
-        Ok((
-            (
-                primitive::McUnsignedByte::from(items[0]),
-                primitive::McUnsignedByte::from(items[1]),
-                primitive::McUnsignedByte::from(items[2]),
-            ),
-            remaining,
-        ))
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+        let size = VarInt::decode(reader)?;
+        let item = T::decode(reader, &size)?;
+        Ok((size, item))
     }
 }
 
-impl Encodable
-    for (
-        primitive::McUnsignedByte,
-        primitive::McUnsignedByte,
-        primitive::McUnsignedByte,
-    )
+impl<T> Encodable for (VarInt, T)
+where
+    T: SizeEncodable,
 {
-    fn encode(&self) -> Result<Vec<u8>> {
-        Ok(Vec::from(vec![*self.0, *self.1, *self.2]))
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+        self.0.encode(writer)?;
+        self.1.encode(writer, &self.0)
     }
 }
 
-macro_rules! prim_type {
-        ($name:ident = $primitive:ty) => {
-            #[derive(Copy, Clone, Debug)]
-            pub struct $name($primitive);
+// This section is used for entity metadata
 
-            impl $name {
-                pub fn new(internal: $primitive) -> Self {
-                    $name(internal)
-                }
+impl<T> Encodable for (bool, Option<T>)
+where
+    T: Encodable,
+{
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+        self.0.encode(writer)?;
+        if self.0 {
+            match &self.1 {
+                Some(item) => item.encode(writer),
+                None => anyhow::bail!("Expected some value but found None."),
             }
-
-            impl Into<$primitive> for $name {
-                fn into(self) -> $primitive {
-                    self.0
-                }
-            }
-
-            impl std::ops::Deref for $name {
-                type Target = $primitive;
-                fn deref(&self) -> &Self::Target {
-                    &self.0
-                }
-            }
-
-            impl From<$primitive> for $name {
-                fn from(internal: $primitive) -> Self {
-                    $name(internal)
-                }
-            }
-        };
-        ($name:ident = $primitive:ty, |$encode_self:ident| $encoder:expr) => {
-            prim_type!($name = $primitive);
-
-            impl super::Encodable for $name {
-                fn encode($encode_self: &Self) -> super::Result<Vec<u8>> {
-                    Ok($encoder)
-                }
-            }
-        };
-        ($name:ident = $primitive:ty, |$decode_iterator:ident| $decoder:expr, |$encode_self:ident| $encoder:expr) => {
-            prim_type!($name = $primitive, |$encode_self| $encoder);
-
-            impl super::Decodable<$name> for $name {
-                fn decode(bytes: Vec<u8>) -> super::Result<($name, Vec<u8>)> {
-                    let $decode_iterator = bytes.into_iter();
-                    $decoder
-                }
-            }
-        };
-        ($name:ident = $primitive:ty, |$pre:tt $decode_iterator:ident| $decoder:expr, |$encode_self:ident| $encoder:expr) => {
-            prim_type!($name = $primitive, |$encode_self| $encoder);
-
-            impl super::Decodable<$name> for $name {
-                fn decode(bytes: Vec<u8>) -> super::Result<($name, Vec<u8>)> {
-                    let $pre $decode_iterator = bytes.into_iter();
-                    $decoder
-                }
-            }
-        };
-    }
-
-fn require_bytes(iterator: impl Iterator<Item = u8>, size: usize) -> Result<(Vec<u8>, Vec<u8>)> {
-    let vec: Vec<u8> = iterator.collect();
-    if vec.len() < size {
-        Err(String::from(UNEXPECTED_EOF))
-    } else if vec.len() == size {
-        Ok((vec, vec![]))
-    } else {
-        Ok((Vec::from(&vec[0..size]), Vec::from(&vec[size..vec.len()])))
-    }
-}
-
-pub mod primitive {
-    prim_type!(
-        McBoolean = bool,
-        |mut iterator| {
-            if let Some(next_byte) = iterator.next() {
-                let bool_res = match next_byte {
-                    0x00u8 => Ok(false),
-                    0x01u8 => Ok(true),
-                    _ => Err(String::from("")),
-                }?;
-                Ok((McBoolean(bool_res), iterator.collect()))
-            } else {
-                Err(String::from(super::UNEXPECTED_EOF))
-            }
-        },
-        |self| if self.0 { vec![0x01u8] } else { vec![0x00u8] }
-    );
-
-    prim_type!(
-        McByte = i8,
-        |mut iterator| {
-            if let Some(next_byte) = iterator.next() {
-                Ok((McByte(next_byte as i8), iterator.collect()))
-            } else {
-                Err(String::from(super::UNEXPECTED_EOF))
-            }
-        },
-        |self| vec![self.0 as u8]
-    );
-
-    prim_type!(
-        McUnsignedByte = u8,
-        |mut iterator| {
-            if let Some(next_byte) = iterator.next() {
-                Ok((McUnsignedByte(next_byte), iterator.collect()))
-            } else {
-                Err(String::from(super::UNEXPECTED_EOF))
-            }
-        },
-        |self| vec![self.0]
-    );
-
-    prim_type!(
-        McShort = i16,
-        |iterator| {
-            let (bytes, remaining) = super::require_bytes(iterator, 2)?;
-            let be_bytes = [bytes[0], bytes[1]];
-            let res = i16::from_be_bytes(be_bytes);
-            Ok((McShort(res), remaining))
-        },
-        |self| Vec::from(self.0.to_be_bytes())
-    );
-
-    prim_type!(
-        McUnsignedShort = u16,
-        |iterator| {
-            let (bytes, remaining) = super::require_bytes(iterator, 2)?;
-            let be_bytes = [bytes[0], bytes[1]];
-            let res = u16::from_be_bytes(be_bytes);
-            Ok((McUnsignedShort(res), remaining))
-        },
-        |self| Vec::from(self.0.to_be_bytes())
-    );
-
-    prim_type!(
-        McInteger = i32,
-        |iterator| {
-            let (bytes, remaining) = super::require_bytes(iterator, 4)?;
-            let be_bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
-            let res = i32::from_be_bytes(be_bytes);
-            Ok((McInteger(res), remaining))
-        },
-        |self| Vec::from(self.0.to_be_bytes())
-    );
-
-    prim_type!(
-        McLong = i64,
-        |iterator| {
-            let (bytes, remaining) = super::require_bytes(iterator, 8)?;
-            let be_bytes = [
-                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-            ];
-            let res = i64::from_be_bytes(be_bytes);
-            Ok((McLong(res), remaining))
-        },
-        |self| Vec::from(self.0.to_be_bytes())
-    );
-
-    prim_type!(
-        McFloat = f32,
-        |iterator| {
-            let (bytes, remaining) = super::require_bytes(iterator, 4)?;
-            let be_bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
-            let res = f32::from_be_bytes(be_bytes);
-            Ok((McFloat(res), remaining))
-        },
-        |self| Vec::from(self.0.to_be_bytes())
-    );
-
-    prim_type!(
-        McDouble = f64,
-        |iterator| {
-            let (bytes, remaining) = super::require_bytes(iterator, 8)?;
-            let be_bytes = [
-                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-            ];
-            let res = f64::from_be_bytes(be_bytes);
-            Ok((McDouble(res), remaining))
-        },
-        |self| Vec::from(self.0.to_be_bytes())
-    );
-}
-
-macro_rules! var_num {
-    ($name:ident, $primitive_signed:ty, $bit_limit:literal, $primitive_unsigned:ty, $and_check:literal) => {
-        prim_type!($name = $primitive_signed);
-
-        impl Decodable<$name> for $name {
-            fn decode(bytes: Vec<u8>) -> Result<($name, Vec<u8>)> {
-                let mut value: $primitive_signed = 0;
-                let mut bit_offset = 0u32;
-                let mut iter = bytes.into_iter();
-                loop {
-                    if bit_offset == $bit_limit {
-                        return Err(format!(
-                            "Variable number was too big, expected {}.",
-                            $bit_limit
-                        ));
-                    }
-
-                    if let Some(next_byte) = iter.next() {
-                        value |= <$primitive_signed>::from(next_byte & 0b01111111)
-                            .overflowing_shl(bit_offset)
-                            .0;
-                        bit_offset += 7;
-
-                        if next_byte & 0b10000000 == 0 {
-                            break;
-                        }
-                    } else {
-                        return Err(String::from(UNEXPECTED_EOF));
-                    }
-                }
-                Ok(($name(value), iter.collect()))
-            }
-        }
-        impl Encodable for $name {
-            fn encode(&self) -> Result<Vec<u8>> {
-                let mut vec = Vec::new();
-                let mut temp = self.0.clone() as $primitive_unsigned;
-                loop {
-                    if temp & $and_check == 0 {
-                        vec.push(temp as u8);
-                        return Ok(vec);
-                    }
-
-                    vec.push((temp & 0x7F | 0x80) as u8);
-                    temp = temp.overflowing_shr(7).0;
-                }
-            }
-        }
-
-        impl From<$primitive_unsigned> for $name {
-            fn from(internal: $primitive_unsigned) -> Self {
-                $name(internal as $primitive_signed)
-            }
-        }
-    };
-}
-
-var_num!(VarInt, i32, 35, u32, 0xFFFFFF80);
-var_num!(VarLong, i64, 70, u64, 0xFFFFFFFFFFFFFF80);
-
-pub struct McString(String);
-
-impl McString {
-    pub fn new(internal: String) -> Self {
-        McString(internal)
-    }
-
-    pub fn decode(bytes: Vec<u8>, max_length: u32) -> Result<(McString, Vec<u8>)> {
-        let (size, remaining) = VarInt::decode(bytes)?;
-        let true_size = *size as u32;
-        if true_size > max_length * 4 {
-            return Err(format!(
-                "Failed to validate expected string length {} with decoder.",
-                max_length
-            ));
-        }
-        let (string_bytes, remaining) = require_bytes(remaining.into_iter(), true_size as usize)?;
-        if let Ok(internal) = String::from_utf8(string_bytes) {
-            Ok((McString(internal), remaining))
         } else {
-            Err(String::from(
-                "Failed to create UTF-8 string from decoded data.",
-            ))
+            Ok(())
         }
     }
 }
 
-impl Encodable for McString {
-    fn encode(&self) -> Result<Vec<u8>> {
-        let var_int_bytes = VarInt(self.0.len() as i32).encode()?;
-        let string_bytes = self.0.as_bytes();
-        Ok(Vec::from([&var_int_bytes, string_bytes].concat()))
+impl<T> Decodable for (bool, Option<T>)
+where
+    T: Decodable,
+{
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        let present = bool::decode(reader)?;
+        if present {
+            let item = T::decode(reader)?;
+            Ok((true, Some(item)))
+        } else {
+            Ok((false, None))
+        }
     }
 }
 
-impl Deref for McString {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl<X, Y, Z> Encodable for (X, Y, Z)
+where
+    X: Encodable,
+    Y: Encodable,
+    Z: Encodable,
+{
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+        self.0.encode(writer)?;
+        self.1.encode(writer)?;
+        self.2.encode(writer)?;
+        Ok(())
     }
 }
 
-impl Into<String> for McString {
-    fn into(self) -> String {
-        self.0
+impl<X, Y, Z> Decodable for (X, Y, Z)
+where
+    X: Decodable,
+    Y: Decodable,
+    Z: Decodable,
+{
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok((X::decode(reader)?, Y::decode(reader)?, Z::decode(reader)?))
     }
 }
 
-impl From<String> for McString {
-    fn from(internal: String) -> Self {
-        McString(internal)
+// Strings
+
+pub trait McString: Sized {
+    fn new(internal: String) -> Self;
+
+    fn string(&self) -> &String;
+
+    fn limit() -> VarInt;
+}
+
+impl<T> Decodable for T
+where
+    T: McString,
+{
+    fn decode(reader: &mut impl Read) -> anyhow::Result<T> {
+        let true_size = VarInt::decode(reader)?;
+
+        if true_size > T::limit() * 4 {
+            anyhow::bail!(
+                "Failed to construct string with limit {} with given size {}.",
+                T::limit(),
+                true_size
+            );
+        }
+
+        let mut bytes = vec![0u8; *true_size as usize];
+        reader.read_exact(&mut bytes).context(format!(
+            "Unexpected EOF while decoding string with size {}.",
+            true_size
+        ))?;
+        let internal = String::from_utf8(bytes).context("Failed to build UTF-8 encoded string.")?;
+
+        Ok(T::new(internal))
     }
 }
 
-impl From<&str> for McString {
-    fn from(internal: &str) -> Self {
-        McString(String::from(internal))
+impl<T> Encodable for T
+where
+    T: McString,
+{
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+        let bytes = self.string().as_bytes();
+        let length = VarInt::from(bytes.len() as i32);
+        if length > T::limit() {
+            anyhow::bail!(
+                "Failed to encode string with limit {} with given size {}.",
+                T::limit(),
+                bytes.len()
+            );
+        }
+
+        length.encode(writer)?;
+        writer.write_all(bytes)?;
+
+        Ok(())
     }
 }
 
-macro_rules! string_type {
-    ($name:ident, $limit:literal) => {
-        pub struct $name(McString);
-
-        impl $name {
-            pub fn new(internal: McString) -> Self {
-                $name(internal)
-            }
-        }
-
-        impl Encodable for $name {
-            fn encode(&self) -> Result<Vec<u8>> {
-                self.0.encode()
-            }
-        }
-
-        impl Decodable<$name> for $name {
-            fn decode(bytes: Vec<u8>) -> Result<($name, Vec<u8>)> {
-                match McString::decode(bytes, $limit) {
-                    Ok((mc_string, remaining)) => Ok(($name(mc_string), remaining)),
-                    Err(e) => Err(e),
-                }
-            }
-        }
-
-        impl Deref for $name {
-            type Target = String;
-
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-
-        impl Into<String> for $name {
-            fn into(self) -> String {
-                self.0.into()
-            }
-        }
-
-        impl From<String> for $name {
-            fn from(internal: String) -> Self {
-                $name(McString(internal))
-            }
-        }
-
-        impl From<&str> for $name {
-            fn from(internal: &str) -> Self {
-                $name(McString(String::from(internal)))
-            }
-        }
-    };
-}
-
-string_type!(ChatJson, 262144);
-string_type!(Identifier, 32767);
+auto_string!(ChatJson, 262144);
+auto_string!(Identifier, 32767);
+auto_string!(BigString, 32767);
 
 pub struct McUuid(Uuid);
 
@@ -608,37 +304,24 @@ impl McUuid {
 }
 
 impl Encodable for McUuid {
-    fn encode(&self) -> Result<Vec<u8>> {
-        Ok(Vec::from(*self.0.as_bytes()))
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+        writer
+            .write_all(&*self.0.as_bytes())
+            .context("Failed to encode uuid bytes.")
     }
 }
 
-impl Decodable<McUuid> for McUuid {
-    fn decode(bytes: Vec<u8>) -> Result<(McUuid, Vec<u8>)> {
-        let (uuid_bytes, remaining) = require_bytes(bytes.into_iter(), 16)?;
-        let uuid: [u8; 16] = [
-            uuid_bytes[0],
-            uuid_bytes[1],
-            uuid_bytes[2],
-            uuid_bytes[3],
-            uuid_bytes[4],
-            uuid_bytes[5],
-            uuid_bytes[6],
-            uuid_bytes[7],
-            uuid_bytes[8],
-            uuid_bytes[9],
-            uuid_bytes[10],
-            uuid_bytes[11],
-            uuid_bytes[12],
-            uuid_bytes[13],
-            uuid_bytes[14],
-            uuid_bytes[15],
-        ];
-        return Ok((McUuid(Builder::from_bytes(uuid).build()), remaining));
+impl Decodable for McUuid {
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+        let mut uuid: [u8; 16] = [0u8; 16];
+        reader
+            .read_exact(&mut uuid)
+            .context("Unexpected EOF while decoding 16 bytes for UUID.")?;
+        Ok(McUuid(Builder::from_bytes(uuid).build()))
     }
 }
 
-impl Deref for McUuid {
+impl std::ops::Deref for McUuid {
     type Target = Uuid;
 
     fn deref(&self) -> &Self::Target {
@@ -646,28 +329,28 @@ impl Deref for McUuid {
     }
 }
 
-pub struct Angle(primitive::McUnsignedByte);
+pub struct Angle(u8);
 
 impl Angle {
-    pub fn new(byte: primitive::McUnsignedByte) -> Self {
+    pub fn new(byte: u8) -> Self {
         Angle(byte)
     }
 }
 
 impl Encodable for Angle {
-    fn encode(&self) -> Result<Vec<u8>> {
-        self.0.encode()
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+        self.0.encode(writer)
     }
 }
 
-impl Decodable<Angle> for Angle {
-    fn decode(bytes: Vec<u8>) -> Result<(Angle, Vec<u8>)> {
-        let (mc_unsigned_byte, remaining) = primitive::McUnsignedByte::decode(bytes)?;
-        Ok((Angle(mc_unsigned_byte), remaining))
+impl Decodable for Angle {
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+        let result = u8::decode(reader)?;
+        Ok(Angle(result))
     }
 }
 
-impl Deref for Angle {
+impl std::ops::Deref for Angle {
     type Target = u8;
 
     fn deref(&self) -> &Self::Target {
@@ -684,23 +367,22 @@ impl Position {
 }
 
 impl Encodable for Position {
-    fn encode(&self) -> Result<Vec<u8>> {
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         let mut long: i64 = 0;
         long = long | (i64::from(self.0) & 0x3FFFFFF).overflowing_shl(38).0;
         long = long | ((i64::from(self.1) & 0x3FFFFFF).overflowing_shl(12).0);
         long = long | (i64::from(self.2) & 0xFFF);
-        primitive::McLong::encode(&primitive::McLong::from(long))
+        long.encode(writer)
     }
 }
 
-impl Decodable<Position> for Position {
-    fn decode(bytes: Vec<u8>) -> Result<(Position, Vec<u8>)> {
-        let (long, remaining) = primitive::McLong::decode(bytes)?;
-        let long = *long;
+impl Decodable for Position {
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+        let long = i64::decode(reader)?;
         let x = long.overflowing_shr(38).0;
         let y = long & 0xFFF;
         let z = long.overflowing_shl(26).0.overflowing_shr(38).0;
-        Ok((Position(x, y, z), remaining))
+        Ok(Position(x, y, z))
     }
 }
 
@@ -713,77 +395,17 @@ impl NbtTag {
 }
 
 impl Encodable for NbtTag {
-    fn encode(&self) -> Result<Vec<u8>> {
-        let mut dst = Vec::new();
-        match self.0.to_writer(&mut dst) {
-            Ok(()) => Ok(dst),
-            Err(_) => Err(String::from("Failed to write nbt data to bytes.")),
-        }
+    fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+        self.0
+            .to_writer(writer)
+            .context("Failed to encode NBT tag to buffer.")
     }
 }
 
-impl Decodable<NbtTag> for NbtTag {
-    fn decode(bytes: Vec<u8>) -> Result<(NbtTag, Vec<u8>)> {
-        let mut src = std::io::Cursor::new(bytes);
-        match nbt::Blob::from_reader(&mut src) {
-            Ok(blob) => Ok((NbtTag(blob), src.into_inner())),
-            Err(_) => Err(String::from("Error reading blob nbt.")),
-        }
-    }
-}
-
-pub struct SlotData {
-    present: bool,
-    item_id: Option<VarInt>,
-    count: Option<primitive::McUnsignedByte>,
-    tag: Option<NbtTag>,
-}
-
-impl SlotData {
-    pub fn new() -> Self {
-        SlotData {
-            present: false,
-            item_id: None,
-            count: None,
-            tag: None,
-        }
-    }
-
-    pub fn item(item_id: VarInt, count: primitive::McUnsignedByte, tag: NbtTag) -> Self {
-        SlotData {
-            present: true,
-            item_id: Some(item_id),
-            count: Some(count),
-            tag: Some(tag),
-        }
-    }
-}
-
-impl Encodable for SlotData {
-    fn encode(&self) -> Result<Vec<u8>> {
-        if self.present {
-            let mut encoder = Encoder::new();
-            encoder.encode(&primitive::McBoolean::new(true))?;
-            encoder.encode_if(&self.item_id)?;
-            encoder.encode_if(&self.count)?;
-            encoder.encode_if(&self.tag)?;
-            Ok(encoder.into())
-        } else {
-            primitive::McBoolean::new(false).encode()
-        }
-    }
-}
-
-impl Decodable<SlotData> for SlotData {
-    fn decode(bytes: Vec<u8>) -> Result<(SlotData, Vec<u8>)> {
-        let (mc_bool, remaining) = primitive::McBoolean::decode(bytes)?;
-        if *mc_bool {
-            let (item_id, remaining) = VarInt::decode(remaining)?;
-            let (count, remaining) = primitive::McUnsignedByte::decode(remaining)?;
-            let (tag, remaining) = NbtTag::decode(remaining)?;
-            Ok((SlotData::item(item_id, count, tag), remaining))
-        } else {
-            Ok((SlotData::new(), remaining))
-        }
+impl Decodable for NbtTag {
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+        let blob =
+            nbt::Blob::from_reader(reader).context("Failed to decode NBT tag from buffer.")?;
+        Ok(NbtTag(blob))
     }
 }

@@ -1,48 +1,300 @@
-macro_rules! nest_decode {
-    ($call_type:path,; $decoder:ident) => {
-        use $call_type as $decoder;
-    };
-    ($call_type:path, $decoder_type:path; $decoder:ident) => {
-        use $decoder_type as $decoder;
+macro_rules! declare_primitives {
+    ($(|$prim:ty;$size:literal|)+) => {
+        $(
+            impl Decodable for $prim {
+                fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+                    let mut into = [0u8; $size];
+                    anyhow::Context::context(reader.read_exact(&mut into), format!("Unexpected EOF while reading {} from buffer.", stringify!($prim)))?;
+                    Ok(<$prim>::from_be_bytes(into))
+                }
+            }
+
+            impl Encodable for $prim {
+                fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+                    anyhow::Context::context(writer.write_all(&self.to_be_bytes()), format!("Failed to write {} into buffer.", &self))
+                }
+            }
+        )*
+    }
+}
+
+macro_rules! declare_variable_number {
+    ($name:ident, $primitive_signed:ty, $bit_limit:literal, $primitive_unsigned:ty, $and_check:literal) => {
+        #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+        pub struct $name($primitive_signed);
+
+        impl Display for $name {
+            fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+                write!(f, "{}", self.0)
+            }
+        }
+
+        impl std::ops::Mul<$primitive_signed> for &$name {
+            type Output = $name;
+
+            fn mul(self, rhs: $primitive_signed) -> Self::Output {
+                $name(self.0 * rhs)
+            }
+        }
+
+        impl std::ops::Mul<$primitive_unsigned> for &$name {
+            type Output = $name;
+
+            fn mul(self, rhs: $primitive_unsigned) -> Self::Output {
+                $name(((self.0 as $primitive_unsigned) * rhs) as $primitive_signed)
+            }
+        }
+
+        impl std::ops::Mul for &$name {
+            type Output = $name;
+
+            fn mul(self, rhs: Self) -> Self::Output {
+                $name(self.0 * rhs.0)
+            }
+        }
+
+        impl std::ops::Mul<$primitive_signed> for $name {
+            type Output = $name;
+
+            fn mul(self, rhs: $primitive_signed) -> Self::Output {
+                $name(self.0 * rhs)
+            }
+        }
+
+        impl std::ops::Mul<$primitive_unsigned> for $name {
+            type Output = $name;
+
+            fn mul(self, rhs: $primitive_unsigned) -> Self::Output {
+                $name(((self.0 as $primitive_unsigned) * rhs) as $primitive_signed)
+            }
+        }
+
+        impl std::ops::Mul for $name {
+            type Output = $name;
+
+            fn mul(self, rhs: Self) -> Self::Output {
+                $name(self.0 * rhs.0)
+            }
+        }
+
+        impl std::cmp::PartialEq<$primitive_signed> for $name {
+            fn eq(&self, other: &$primitive_signed) -> bool {
+                self.0 == *other
+            }
+        }
+
+        impl std::cmp::PartialOrd<$primitive_signed> for $name {
+            fn partial_cmp(&self, other: &$primitive_signed) -> Option<std::cmp::Ordering> {
+                Some(self.0.cmp(other))
+            }
+        }
+
+        impl Decodable for $name {
+            fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
+                let mut value: $primitive_signed = 0;
+                let mut bit_offset = 0u32;
+                loop {
+                    if bit_offset == $bit_limit {
+                        anyhow::bail!("Failed to decode {}, too many bytes.", stringify!(crate::VarInt));
+                    }
+
+                    let mut buf = [0; 1];
+                    reader.read_exact(&mut buf)?;
+                    let byte = buf[0];
+                    value |= <$primitive_signed>::from(byte & 0b01111111)
+                        .overflowing_shl(bit_offset)
+                        .0;
+                    bit_offset += 7;
+
+                    if byte & 0b10000000 == 0 {
+                        break;
+                    }
+                }
+                Ok($name(value))
+            }
+        }
+
+        impl Encodable for $name {
+            fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
+                let mut temp = self.0.clone() as $primitive_unsigned;
+                loop {
+                    if temp & $and_check == 0 {
+                        writer.write_all(&[temp as u8])?;
+                        return Ok(());
+                    }
+                    writer.write_all(&[(temp & 0x7F | 0x80) as u8])?;
+                    temp = temp.overflowing_shr(7).0;
+                }
+            }
+        }
+
+        impl From<$primitive_unsigned> for $name {
+            fn from(internal: $primitive_unsigned) -> Self {
+                $name(internal as $primitive_signed)
+            }
+        }
+
+        impl Into<$primitive_unsigned> for $name {
+            fn into(self) -> $primitive_unsigned {
+                self.0 as $primitive_unsigned
+            }
+        }
+
+        impl From<$primitive_signed> for $name {
+            fn from(internal: $primitive_signed) -> Self {
+                $name(internal)
+            }
+        }
+
+        impl Into<$primitive_signed> for $name {
+            fn into(self) -> $primitive_signed {
+                self.0
+            }
+        }
+
+        impl std::ops::Deref for $name {
+            type Target = $primitive_signed;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
     };
 }
 
-macro_rules! minecraft_struct {
-    ($packet_name:ident) => {
-        pub struct $packet_name;
-        impl crate::Encodable for $packet_name {
-            fn encode(&self) -> crate::Result<Vec<u8>> {
-                Ok(vec![])
+macro_rules! auto_string {
+    ($name:ident, $size:literal) => {
+        pub struct $name(String);
+
+        impl crate::McString for $name {
+            fn new(internal: String) -> Self {
+                $name(internal)
+            }
+            fn string(&self) -> &String {
+                &self.0
+            }
+            fn limit() -> crate::VarInt {
+                crate::VarInt($size)
             }
         }
-        impl crate::Decodable<$packet_name> for $packet_name {
-            fn decode(remaining: Vec<u8>) -> crate::Result<($packet_name, Vec<u8>)> {
-                Ok(($packet_name {}, remaining))
+
+        impl From<String> for $name {
+            fn from(internal: String) -> Self {
+                $name(internal)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(internal: &str) -> Self {
+                $name(String::from(internal))
             }
         }
     };
-    {$packet_name:ident $($field:ident = $field_type:path; $($decoder_path:path)?; $decoder_func:ident $($param:expr)*;)*} => {
-        pub struct $packet_name {
-            $(pub $field: $field_type,)*
-        }
+}
 
-        impl crate::Encodable for $packet_name {
-            fn encode(&self) -> crate::Result<Vec<u8>> {
-                let mut encoder = crate::Encoder::new();
-                $(encoder.encode(&self.$field)?;)*
-                Ok(encoder.into())
+macro_rules! auto_enum {
+    ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident $(:$option_type:ty)?,)* })*) => {
+        auto_enum!($($enum_name; $index_type { $($byte_representation => $option_name $(:$option_type, pseudo)*,)* })*);
+    };
+    ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident $(:$option_type:ty, $pseudo:ident)?,)* })*) => {
+        $(
+            pub enum $enum_name {
+                $(
+                    $option_name$(($option_type))*,
+                )*
             }
-        }
 
-        impl crate::Decodable<$packet_name> for $packet_name {
-            fn decode(remaining: Vec<u8>) -> crate::Result<($packet_name, Vec<u8>)> {
-                $(let ($field, remaining): ($field_type, Vec<u8>) = {
-                    nest_decode!($field_type, $($decoder_path)*; decoder);
-                    decoder::$decoder_func(remaining, $($param,)*)?
-                    // <$field_type>::decode(remaining, $($param,)*)?;
-                };)*
-                Ok(($packet_name { $($field,)* }, remaining))
+            impl crate::Decodable for $enum_name {
+                fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
+                    let index = <$index_type>::decode(reader)?;
+
+                    match index.into() {
+                        $(
+                            $byte_representation => Ok($enum_name::$option_name$((<$option_type>::decode(reader)?))*),
+                        )*
+                        _ => anyhow::bail!("Failed to decode enum, unknown index {}.", index),
+                    }
+                }
             }
+
+            impl crate::Encodable for $enum_name {
+                fn encode(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
+                    match self {
+                        $(
+                            $enum_name::$option_name$(($pseudo))* => {
+                                <$index_type>::encode(&<$index_type>::from($byte_representation), writer)?;
+                                $(
+                                    anyhow::Context::context(
+                                        <$option_type>::encode($pseudo, writer),
+                                        format!("Failed to encode enum type {}::{}.", stringify!($enum_name), stringify!($option_name))
+                                    )?;
+                                )*
+                                Ok(())
+                            }
+                        )*
+                    }
+                }
+            }
+        )*
+    };
+}
+
+macro_rules! field_context {
+    ($field_name:ident, $field_type:ty, $context_type:literal) => {
+        format!(
+            "Failed to {} type {} for field {}.",
+            $context_type,
+            stringify!($field_type),
+            stringify!($field_name)
+        )
+    };
+}
+
+macro_rules! struct_decode_if_def {
+    ($reader:expr, $field_name:ident, $field_type:ty) => {
+        anyhow::Context::context(<$field_type>::decode($reader), field_context!(
+            $field_name,
+            $field_type,
+            "decode"
+        ))?
+    };
+    ($reader:expr, $field_name:ident, $field_type:ty, $predicate:expr, $alternate:expr) => {
+        if $predicate {
+            anyhow::Context::context(<$field_type>::decode($reader), field_context!(
+                $field_name,
+                $field_type,
+                "decode"
+            ))?
+        } else {
+            $alternate
         }
+    };
+}
+
+macro_rules! auto_struct {
+    ($($struct_name:ident { $($field_name:ident: $field_type:ty $(|$predicate:expr => $alternate:expr)?,)* })*) => {
+        $(
+            pub struct $struct_name {
+                $(pub $field_name: $field_type,)*
+            }
+
+            #[allow(unused_variables)]
+            impl crate::Decodable for $struct_name {
+                fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
+                    $(let $field_name = struct_decode_if_def!(reader, $field_name, $field_type $(,$predicate, $alternate)*);)*
+                    Ok($struct_name {
+                        $($field_name,)*
+                    })
+                }
+            }
+
+            #[allow(unused_variables)]
+            impl crate::Encodable for $struct_name {
+                fn encode(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
+                    $(anyhow::Context::context(self.$field_name.encode(writer), field_context!($field_name, $field_type, "encode"))?;)*
+                    Ok(())
+                }
+            }
+        )*
     };
 }

@@ -1,7 +1,7 @@
-use crate::primitive::McLong;
+auto_struct! {
+    StatusRequest {}
 
-minecraft_struct!(StatusRequest);
-
-minecraft_struct! { Ping
-    payload = McLong;;decode;
+    Ping {
+        payload: i64,
+    }
 }

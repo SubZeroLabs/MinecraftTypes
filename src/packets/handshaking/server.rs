@@ -1,8 +1,12 @@
-use crate::{primitive::McUnsignedShort, McString, VarInt};
+use crate::VarInt;
 
-minecraft_struct! { Handshake
-    protocol_version = VarInt;;decode;
-    server_address = McString;;decode 255;
-    server_port = McUnsignedShort;;decode;
-    next_state = VarInt;;decode;
+auto_string!(HandshakeServerAddress, 255);
+
+auto_struct! {
+    Handshake {
+        protocol_version: VarInt,
+        server_address: HandshakeServerAddress,
+        server_port: u8,
+        next_state: VarInt,
+    }
 }

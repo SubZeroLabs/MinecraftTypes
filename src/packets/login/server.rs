@@ -1,21 +1,20 @@
-use crate::{
-    primitive::{McBoolean, McUnsignedByte},
-    Decoder, McString, VarInt,
-};
+use crate::VarInt;
 
-minecraft_struct! { LoginStart
-    name = McString;;decode 16;
-}
+auto_string!(LoginNameString, 16);
 
-minecraft_struct! { EncryptionResponse
-    shared_secret_length = VarInt;;decode;
-    shared_secret = Vec<McUnsignedByte>;Decoder;decode_arr VarInt::from(*shared_secret_length);
-    verify_token_length = VarInt;;decode;
-    verify_token = Vec<McUnsignedByte>;Decoder;decode_arr VarInt::from(*verify_token_length);
-}
+auto_struct! {
+    LoginStart {
+        name: LoginNameString,
+    }
 
-minecraft_struct! { LoginPluginResponse
-    message_id = VarInt;;decode;
-    successful = McBoolean;;decode;
-    data = Vec<McUnsignedByte>;Decoder;decode_to_end;
+    EncryptionResponse {
+        shared_secret: (VarInt, Vec<u8>),
+        verify_token: (VarInt, Vec<u8>),
+    }
+
+    LoginPluginResponse {
+        message_id: VarInt,
+        successful: bool,
+        data: Vec<u8>,
+    }
 }

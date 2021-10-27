@@ -1,9 +1,11 @@
-use crate::{primitive::McLong, McString};
+auto_string!(StatusResponseJson, 255);
 
-minecraft_struct! { StatusResponse
-    json_response = McString;;decode 255;
-}
+auto_struct! {
+    StatusResponse {
+        json_response: StatusResponseJson,
+    }
 
-minecraft_struct! { Pong
-    payload = McLong;;decode;
+    Pong {
+        payload: i64,
+    }
 }
