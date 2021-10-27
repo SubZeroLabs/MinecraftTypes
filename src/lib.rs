@@ -30,16 +30,13 @@ pub trait SizeEncodable {
 
 impl Decodable for bool {
     fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
-        let mut into = [0u8; 1];
-        reader
-            .read_exact(&mut into)
-            .context(format!("Failed to read {} from buffer.", stringify!(bool)))?;
-        if &into[0] == &0x0u8 {
+        let byte = u8::decode(reader)?;
+        if byte == 0x0u8 {
             Ok(false)
-        } else if &into[0] == &0x1u8 {
+        } else if byte == 0x1u8 {
             Ok(true)
         } else {
-            anyhow::bail!("Malformed boolean found. Byte {}", &into[0]);
+            anyhow::bail!("Malformed boolean found. Byte {}", byte);
         }
     }
 }
