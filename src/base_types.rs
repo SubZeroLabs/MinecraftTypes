@@ -158,7 +158,7 @@ auto_enum! {
         13 => EntryOptBlockId: VarInt,
         14 => EntryNbt: NbtTag,
         15 => EntityParticle: Particle,
-        16 => EntryVillagerData: (VarInt, VarInt, VarInt),
+        16 => EntryVillagerData: (VillagerType, VillagerProfession, VarInt),
         17 => EntryOptVarInt: VarInt,
         18 => EntryPose: Pose,
     }
