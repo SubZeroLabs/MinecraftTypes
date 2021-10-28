@@ -213,6 +213,6 @@ auto_struct! {
 
     MetadataEntry {
         index: u8,
-        entry_type: Option<MetadataEntryType> | index == 0xff => None,
+        entry_type: Option<MetadataEntryType> | index != 0xff => None,
     }
 }
