@@ -196,7 +196,7 @@ macro_rules! auto_string {
 }
 
 #[macro_export]
-macro_rules! auto_enum {
+macro_rules! simple_auto_enum {
     ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident,)* })*) => {
         auto_enum!($($enum_name; $index_type { $($byte_representation => $option_name,)* })*);
     };
@@ -235,6 +235,10 @@ macro_rules! auto_enum {
             }
         )*
     };
+}
+
+#[macro_export]
+macro_rules! auto_enum {
     ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident $(:$option_type:ty)?,)* })*) => {
         auto_enum!($($enum_name; $index_type { $($byte_representation => $option_name $(:$option_type, pseudo)*,)* })*);
     };
