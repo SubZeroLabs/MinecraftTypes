@@ -192,6 +192,7 @@ macro_rules! auto_string {
     };
 }
 
+#[macro_export]
 macro_rules! auto_enum {
     ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident $(:$option_type:ty)?,)* })*) => {
         auto_enum!($($enum_name; $index_type { $($byte_representation => $option_name $(:$option_type, pseudo)*,)* })*);
@@ -271,6 +272,7 @@ macro_rules! struct_decode_if_def {
     };
 }
 
+#[macro_export]
 macro_rules! auto_struct {
     ($($struct_name:ident { $($field_name:ident: $field_type:ty $(|$predicate:expr => $alternate:expr)?,)* })*) => {
         $(
