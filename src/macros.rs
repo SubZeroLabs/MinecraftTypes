@@ -95,7 +95,10 @@ macro_rules! declare_variable_number {
                 let mut bit_offset = 0u32;
                 loop {
                     if bit_offset == $bit_limit {
-                        anyhow::bail!("Failed to decode {}, too many bytes.", stringify!(crate::VarInt));
+                        anyhow::bail!(
+                            "Failed to decode {}, too many bytes.",
+                            stringify!(crate::VarInt)
+                        );
                     }
 
                     let mut buf = [0; 1];
@@ -194,6 +197,44 @@ macro_rules! auto_string {
 
 #[macro_export]
 macro_rules! auto_enum {
+    ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident,)* })*) => {
+        auto_enum!($($enum_name; $index_type { $($byte_representation => $option_name,)* })*);
+    };
+    ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident,)* })*) => {
+        $(
+            pub enum $enum_name {
+                $(
+                    $option_name,
+                )*
+            }
+
+            impl crate::Decodable for $enum_name {
+                fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
+                    let index = <$index_type>::decode(reader)?;
+
+                    match index.into() {
+                        $(
+                            $byte_representation => Ok($enum_name::$option_name),
+                        )*
+                        _ => anyhow::bail!("Failed to decode enum, unknown index {}.", index),
+                    }
+                }
+            }
+
+            impl crate::Encodable for $enum_name {
+                fn encode(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
+                    match self {
+                        $(
+                            $enum_name::$option_name => {
+                                <$index_type>::encode(&<$index_type>::from($byte_representation), writer)?;
+                                Ok(())
+                            }
+                        )*
+                    }
+                }
+            }
+        )*
+    };
     ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident $(:$option_type:ty)?,)* })*) => {
         auto_enum!($($enum_name; $index_type { $($byte_representation => $option_name $(:$option_type, pseudo)*,)* })*);
     };
@@ -253,19 +294,17 @@ macro_rules! field_context {
 
 macro_rules! struct_decode_if_def {
     ($reader:expr, $field_name:ident, $field_type:ty) => {
-        anyhow::Context::context(<$field_type>::decode($reader), field_context!(
-            $field_name,
-            $field_type,
-            "decode"
-        ))?
+        anyhow::Context::context(
+            <$field_type>::decode($reader),
+            field_context!($field_name, $field_type, "decode"),
+        )?
     };
     ($reader:expr, $field_name:ident, $field_type:ty, $predicate:expr, $alternate:expr) => {
         if $predicate {
-            anyhow::Context::context(<$field_type>::decode($reader), field_context!(
-                $field_name,
-                $field_type,
-                "decode"
-            ))?
+            anyhow::Context::context(
+                <$field_type>::decode($reader),
+                field_context!($field_name, $field_type, "decode"),
+            )?
         } else {
             $alternate
         }
