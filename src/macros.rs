@@ -97,7 +97,7 @@ macro_rules! declare_variable_number {
                     if bit_offset == $bit_limit {
                         anyhow::bail!(
                             "Failed to decode {}, too many bytes.",
-                            stringify!(crate::VarInt)
+                            stringify!($crate::VarInt)
                         );
                     }
 
@@ -169,15 +169,15 @@ macro_rules! auto_string {
     ($name:ident, $size:literal) => {
         pub struct $name(String);
 
-        impl crate::McString for $name {
+        impl $crate::McString for $name {
             fn new(internal: String) -> Self {
                 $name(internal)
             }
             fn string(&self) -> &String {
                 &self.0
             }
-            fn limit() -> crate::VarInt {
-                crate::VarInt($size)
+            fn limit() -> $crate::VarInt {
+                $crate::VarInt($size)
             }
         }
 
@@ -205,7 +205,7 @@ macro_rules! simple_auto_enum {
                 )*
             }
 
-            impl crate::Decodable for $enum_name {
+            impl $crate::Decodable for $enum_name {
                 fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
                     let index = <$index_type>::decode(reader)?;
 
@@ -218,7 +218,7 @@ macro_rules! simple_auto_enum {
                 }
             }
 
-            impl crate::Encodable for $enum_name {
+            impl $crate::Encodable for $enum_name {
                 fn encode(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
                     match self {
                         $(
@@ -247,7 +247,7 @@ macro_rules! auto_enum {
                 )*
             }
 
-            impl crate::Decodable for $enum_name {
+            impl $crate::Decodable for $enum_name {
                 fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
                     let index = <$index_type>::decode(reader)?;
 
@@ -260,7 +260,7 @@ macro_rules! auto_enum {
                 }
             }
 
-            impl crate::Encodable for $enum_name {
+            impl $crate::Encodable for $enum_name {
                 fn encode(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
                     match self {
                         $(
@@ -321,7 +321,7 @@ macro_rules! auto_struct {
             }
 
             #[allow(unused_variables)]
-            impl crate::Decodable for $struct_name {
+            impl $crate::Decodable for $struct_name {
                 fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
                     $(let $field_name = struct_decode_if_def!(reader, $field_name, $field_type $(,$predicate, $alternate)*);)*
                     Ok($struct_name {
@@ -331,7 +331,7 @@ macro_rules! auto_struct {
             }
 
             #[allow(unused_variables)]
-            impl crate::Encodable for $struct_name {
+            impl $crate::Encodable for $struct_name {
                 fn encode(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
                     $(anyhow::Context::context(self.$field_name.encode(writer), field_context!($field_name, $field_type, "encode"))?;)*
                     Ok(())
