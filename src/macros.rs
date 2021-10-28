@@ -205,16 +205,21 @@ macro_rules! simple_auto_enum {
                 )*
             }
 
-            impl $crate::Decodable for $enum_name {
-                fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
-                    let index = <$index_type>::decode(reader)?;
-
-                    match index.into() {
+            impl $crate::IndexDecodable for $enum_name {
+                fn decode_index(__reader: &mut impl std::io::Read, index: &VarInt) -> anyhow::Result<Self> {
+                    match (*index).into() {
                         $(
-                            $byte_representation => Ok($enum_name::$option_name),
+                            $byte_representation => Ok($enum_name::$option_name$((<$option_type>::decode(__reader)?))*),
                         )*
                         _ => anyhow::bail!("Failed to decode enum, unknown index {}.", index),
                     }
+                }
+            }
+
+            impl $crate::Decodable for $enum_name {
+                fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
+                    let index = <$index_type>::decode(reader)?;
+                    <$enum_name>::decode_index(reader, &index)
                 }
             }
 
@@ -247,16 +252,21 @@ macro_rules! auto_enum {
                 )*
             }
 
-            impl $crate::Decodable for $enum_name {
-                fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
-                    let index = <$index_type>::decode(reader)?;
-
-                    match index.into() {
+            impl $crate::IndexDecodable for $enum_name {
+                fn decode_index(__reader: &mut impl std::io::Read, index: &VarInt) -> anyhow::Result<Self> {
+                    match (*index).into() {
                         $(
-                            $byte_representation => Ok($enum_name::$option_name$((<$option_type>::decode(reader)?))*),
+                            $byte_representation => Ok($enum_name::$option_name$((<$option_type>::decode(__reader)?))*),
                         )*
                         _ => anyhow::bail!("Failed to decode enum, unknown index {}.", index),
                     }
+                }
+            }
+
+            impl $crate::Decodable for $enum_name {
+                fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
+                    let index = <$index_type>::decode(reader)?;
+                    <$enum_name>::decode_index(reader, &index)
                 }
             }
 

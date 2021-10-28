@@ -1,4 +1,4 @@
-use crate::{BigString, ChatJson, McUuid, NbtTag, Position, VarInt};
+use crate::{BigString, ChatJson, McUuid, NbtTag, Position, VarInt, Decodable, IndexDecodable};
 
 auto_enum! {
     Direction; VarInt {

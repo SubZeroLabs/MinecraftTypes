@@ -12,6 +12,12 @@ pub trait Decodable {
         Self: Sized;
 }
 
+pub trait IndexDecodable {
+    fn decode_index(reader: &mut impl Read, index: &VarInt) -> anyhow::Result<Self>
+    where
+        Self: Sized;
+}
+
 pub trait SizeDecodable {
     fn decode(reader: &mut impl Read, size: &VarInt) -> anyhow::Result<Self>
     where
