@@ -209,7 +209,7 @@ macro_rules! simple_auto_enum {
                 fn decode_index(__reader: &mut impl std::io::Read, index: &VarInt) -> anyhow::Result<Self> {
                     match (*index).into() {
                         $(
-                            $byte_representation => Ok($enum_name::$option_name$((<$option_type>::decode(__reader)?))*),
+                            $byte_representation => Ok($enum_name::$option_name),
                         )*
                         _ => anyhow::bail!("Failed to decode enum, unknown index {}.", index),
                     }
@@ -218,6 +218,8 @@ macro_rules! simple_auto_enum {
 
             impl $crate::Decodable for $enum_name {
                 fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
+                    use $crate::IndexDecodable;
+
                     let index = <$index_type>::decode(reader)?;
                     <$enum_name>::decode_index(reader, &index)
                 }
@@ -256,7 +258,10 @@ macro_rules! auto_enum {
                 fn decode_index(__reader: &mut impl std::io::Read, index: &VarInt) -> anyhow::Result<Self> {
                     match (*index).into() {
                         $(
-                            $byte_representation => Ok($enum_name::$option_name$((<$option_type>::decode(__reader)?))*),
+                            $byte_representation => Ok($enum_name::$option_name$(({
+                                use $crate::Decodable;
+                                <$option_type>::decode(__reader)?
+                            }))*),
                         )*
                         _ => anyhow::bail!("Failed to decode enum, unknown index {}.", index),
                     }
@@ -265,6 +270,7 @@ macro_rules! auto_enum {
 
             impl $crate::Decodable for $enum_name {
                 fn decode(reader: &mut impl std::io::Read) -> anyhow::Result<Self> {
+                    use $crate::IndexDecodable;
                     let index = <$index_type>::decode(reader)?;
                     <$enum_name>::decode_index(reader, &index)
                 }
