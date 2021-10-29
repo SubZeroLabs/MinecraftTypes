@@ -206,7 +206,7 @@ macro_rules! simple_auto_enum {
             }
 
             impl $crate::IndexDecodable for $enum_name {
-                fn decode_index(__reader: &mut impl std::io::Read, index: &VarInt) -> anyhow::Result<Self> {
+                fn decode_index(__reader: &mut impl std::io::Read, index: &$crate::VarInt) -> anyhow::Result<Self> {
                     match (*index).into() {
                         $(
                             $byte_representation => Ok($enum_name::$option_name),
@@ -255,7 +255,7 @@ macro_rules! auto_enum {
             }
 
             impl $crate::IndexDecodable for $enum_name {
-                fn decode_index(__reader: &mut impl std::io::Read, index: &VarInt) -> anyhow::Result<Self> {
+                fn decode_index(__reader: &mut impl std::io::Read, index: &$crate::VarInt) -> anyhow::Result<Self> {
                     match (*index).into() {
                         $(
                             $byte_representation => Ok($enum_name::$option_name$(({
