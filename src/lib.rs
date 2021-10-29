@@ -198,7 +198,6 @@ where
     T: SizeEncodable,
 {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
-        self.0.encode(writer)?;
         self.1.encode_sized(writer, &self.0)
     }
 
