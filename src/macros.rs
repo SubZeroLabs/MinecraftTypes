@@ -13,6 +13,10 @@ macro_rules! declare_primitives {
                 fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
                     anyhow::Context::context(writer.write_all(&self.to_be_bytes()), format!("Failed to write {} into buffer.", &self))
                 }
+
+                fn size(&self) -> anyhow::Result<VarInt> {
+                    Ok($crate::VarInt::from($size))
+                }
             }
         )*
     }
@@ -22,6 +26,14 @@ macro_rules! declare_variable_number {
     ($name:ident, $primitive_signed:ty, $bit_limit:literal, $primitive_unsigned:ty, $and_check:literal) => {
         #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
         pub struct $name($primitive_signed);
+
+        impl std::ops::Add for $name {
+            type Output = Self;
+
+            fn add(self, rhs: Self) -> Self::Output {
+                $name(self.0 + rhs.0)
+            }
+        }
 
         impl Display for $name {
             fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -129,6 +141,19 @@ macro_rules! declare_variable_number {
                     temp = temp.overflowing_shr(7).0;
                 }
             }
+
+            fn size(&self) -> anyhow::Result<VarInt> {
+                let mut running_size = 0;
+                let mut temp = self.0.clone() as $primitive_unsigned;
+                loop {
+                    if temp & $and_check == 0 {
+                        running_size += 1;
+                        return Ok($crate::VarInt::from(running_size));
+                    }
+                    running_size += 1;
+                    temp = temp.overflowing_shr(7).0;
+                }
+            }
         }
 
         impl From<$primitive_unsigned> for $name {
@@ -152,6 +177,12 @@ macro_rules! declare_variable_number {
         impl Into<$primitive_signed> for $name {
             fn into(self) -> $primitive_signed {
                 self.0
+            }
+        }
+
+        impl From<usize> for $name {
+            fn from(internal: usize) -> Self {
+                $name(internal as $primitive_signed)
             }
         }
 
@@ -236,6 +267,15 @@ macro_rules! simple_auto_enum {
                         )*
                     }
                 }
+                fn size(&self) -> anyhow::Result<VarInt> {
+                    match self {
+                        $(
+                            $enum_name::$option_name => {
+                                <$index_type>::size(&<$index_type>::from($byte_representation))
+                            }
+                        )*
+                    }
+                }
             }
         )*
     };
@@ -289,6 +329,20 @@ macro_rules! auto_enum {
                                     )?;
                                 )*
                                 Ok(())
+                            }
+                        )*
+                    }
+                }
+
+                fn size(&self) -> anyhow::Result<$crate::VarInt> {
+                    match self {
+                        $(
+                            $enum_name::$option_name$(($pseudo))* => {
+                                let size = <$index_type>::size(&<$index_type>::from($byte_representation))?;
+                                $(
+                                    let size = size + <$option_type>::size($pseudo)?;
+                                )*
+                                Ok(size)
                             }
                         )*
                     }
@@ -351,6 +405,14 @@ macro_rules! auto_struct {
                 fn encode(&self, writer: &mut impl std::io::Write) -> anyhow::Result<()> {
                     $(anyhow::Context::context(self.$field_name.encode(writer), field_context!($field_name, $field_type, "encode"))?;)*
                     Ok(())
+                }
+
+                fn size(&self) -> anyhow::Result<$crate::VarInt> {
+                    let size = $crate::VarInt::from(0);
+                    $(
+                        let size = size + <$field_type>::size(&self.$field_name)?;
+                    )*
+                    Ok(size)
                 }
             }
         )*

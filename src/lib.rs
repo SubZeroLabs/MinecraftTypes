@@ -26,10 +26,14 @@ pub trait SizeDecodable {
 
 pub trait Encodable {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()>;
+
+    fn size(&self) -> anyhow::Result<VarInt>;
 }
 
 pub trait SizeEncodable {
     fn encode(&self, writer: &mut impl Write, size: &VarInt) -> anyhow::Result<()>;
+
+    fn predicted_size(&self) -> anyhow::Result<VarInt>;
 }
 
 // primitives
@@ -52,6 +56,10 @@ impl Encodable for bool {
         writer
             .write_all(&[*self as u8])
             .context(format!("Failed to write {} into buffer.", &self))
+    }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        Ok(VarInt::from(1))
     }
 }
 
@@ -100,6 +108,14 @@ where
         }
         Ok(())
     }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        let mut size = VarInt::from(0);
+        for item in self {
+            size = size + item.size()?;
+        }
+        Ok(size)
+    }
 }
 
 impl<T> SizeDecodable for Vec<T>
@@ -126,6 +142,14 @@ where
         }
         Ok(())
     }
+
+    fn predicted_size(&self) -> anyhow::Result<VarInt> {
+        let mut size = VarInt::from(0);
+        for item in self {
+            size = size + item.size()?;
+        }
+        Ok(size)
+    }
 }
 
 impl<T> Decodable for Option<T>
@@ -148,6 +172,14 @@ where
         }
         Ok(())
     }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        if let Some(item) = self {
+            item.size()
+        } else {
+            Ok(VarInt::from(0))
+        }
+    }
 }
 
 impl<T> Decodable for (VarInt, T)
@@ -169,6 +201,10 @@ where
         self.0.encode(writer)?;
         self.1.encode(writer, &self.0)
     }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        Ok(self.0.size()? + self.1.predicted_size()?)
+    }
 }
 
 // This section is used for entity metadata
@@ -186,6 +222,18 @@ where
             }
         } else {
             Ok(())
+        }
+    }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        let size = self.0.size()?;
+        if self.0 {
+            match &self.1 {
+                Some(item) => Ok(size + item.size()?),
+                None => Ok(size),
+            }
+        } else {
+            Ok(size)
         }
     }
 }
@@ -219,6 +267,10 @@ where
         self.1.encode(writer)?;
         self.2.encode(writer)?;
         Ok(())
+    }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        Ok(self.0.size()? + self.1.size()? + self.2.size()?)
     }
 }
 
@@ -292,6 +344,10 @@ where
 
         Ok(())
     }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        Ok(VarInt::from(self.string().len()).size()? + VarInt::from(self.string().len()))
+    }
 }
 
 auto_string!(ChatJson, 262144);
@@ -311,6 +367,10 @@ impl Encodable for McUuid {
         writer
             .write_all(&*self.0.as_bytes())
             .context("Failed to encode uuid bytes.")
+    }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        Ok(VarInt::from(16))
     }
 }
 
@@ -343,6 +403,10 @@ impl Angle {
 impl Encodable for Angle {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         self.0.encode(writer)
+    }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        Ok(VarInt::from(1))
     }
 }
 
@@ -377,6 +441,10 @@ impl Encodable for Position {
         long = long | (i64::from(self.2) & 0xFFF);
         long.encode(writer)
     }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        i64::size(&0i64)
+    }
 }
 
 impl Decodable for Position {
@@ -402,6 +470,10 @@ impl Encodable for NbtTag {
         self.0
             .to_writer(writer)
             .context("Failed to encode NBT tag to buffer.")
+    }
+
+    fn size(&self) -> anyhow::Result<VarInt> {
+        Ok(VarInt::from(self.0.len_bytes()))
     }
 }
 
