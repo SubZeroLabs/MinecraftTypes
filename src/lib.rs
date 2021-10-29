@@ -354,6 +354,7 @@ auto_string!(ChatJson, 262144);
 auto_string!(Identifier, 32767);
 auto_string!(BigString, 32767);
 
+#[derive(Debug)]
 pub struct McUuid(Uuid);
 
 impl McUuid {
@@ -392,6 +393,7 @@ impl std::ops::Deref for McUuid {
     }
 }
 
+#[derive(Debug)]
 pub struct Angle(u8);
 
 impl Angle {
@@ -425,6 +427,7 @@ impl std::ops::Deref for Angle {
     }
 }
 
+#[derive(Debug)]
 pub struct Position(i64, i64, i64);
 
 impl Position {
@@ -457,6 +460,7 @@ impl Decodable for Position {
     }
 }
 
+#[derive(Debug)]
 pub struct NbtTag(nbt::Blob);
 
 impl NbtTag {

@@ -198,6 +198,7 @@ macro_rules! declare_variable_number {
 
 macro_rules! auto_string {
     ($name:ident, $size:literal) => {
+        #[derive(Debug)]
         pub struct $name(String);
 
         impl $crate::McString for $name {
@@ -230,6 +231,7 @@ macro_rules! auto_string {
 macro_rules! simple_auto_enum {
     ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident,)* })*) => {
         $(
+            #[derive(Debug)]
             pub enum $enum_name {
                 $(
                     $option_name,
@@ -288,6 +290,7 @@ macro_rules! auto_enum {
     };
     ($($enum_name:ident; $index_type:ty { $($byte_representation:literal => $option_name:ident $(:$option_type:ty, $pseudo:ident)?,)* })*) => {
         $(
+            #[derive(Debug)]
             pub enum $enum_name {
                 $(
                     $option_name$(($option_type))*,
@@ -386,6 +389,7 @@ macro_rules! struct_decode_if_def {
 macro_rules! auto_struct {
     ($($struct_name:ident { $($field_name:ident: $field_type:ty $(|$predicate:expr => $alternate:expr)?,)* })*) => {
         $(
+            #[derive(Debug)]
             pub struct $struct_name {
                 $(pub $field_name: $field_type,)*
             }
