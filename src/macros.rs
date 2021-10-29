@@ -89,6 +89,18 @@ macro_rules! declare_variable_number {
             }
         }
 
+        impl std::cmp::PartialEq<usize> for $name {
+            fn eq(&self, other: &usize) -> bool {
+                (self.0 as usize) == *other
+            }
+        }
+
+        impl std::cmp::PartialOrd<usize> for $name {
+            fn partial_cmp(&self, other: &usize) -> Option<std::cmp::Ordering> {
+                Some((self.0 as usize).cmp(other))
+            }
+        }
+
         impl std::cmp::PartialEq<$primitive_signed> for $name {
             fn eq(&self, other: &$primitive_signed) -> bool {
                 self.0 == *other
