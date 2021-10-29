@@ -19,7 +19,7 @@ pub trait IndexDecodable {
 }
 
 pub trait SizeDecodable {
-    fn decode(reader: &mut impl Read, size: &VarInt) -> anyhow::Result<Self>
+    fn decode_sized(reader: &mut impl Read, size: &VarInt) -> anyhow::Result<Self>
     where
         Self: Sized;
 }
@@ -31,7 +31,7 @@ pub trait Encodable {
 }
 
 pub trait SizeEncodable {
-    fn encode(&self, writer: &mut impl Write, size: &VarInt) -> anyhow::Result<()>;
+    fn encode_sized(&self, writer: &mut impl Write, size: &VarInt) -> anyhow::Result<()>;
 
     fn predicted_size(&self) -> anyhow::Result<VarInt>;
 }
@@ -122,7 +122,7 @@ impl<T> SizeDecodable for Vec<T>
 where
     T: Decodable,
 {
-    fn decode(reader: &mut impl Read, size: &VarInt) -> anyhow::Result<Self> {
+    fn decode_sized(reader: &mut impl Read, size: &VarInt) -> anyhow::Result<Self> {
         let mut items = Vec::with_capacity(**size as usize);
         for _ in 0..**size {
             items.push(T::decode(reader)?);
@@ -135,7 +135,7 @@ impl<T> SizeEncodable for Vec<T>
 where
     T: Encodable,
 {
-    fn encode(&self, writer: &mut impl Write, size: &VarInt) -> anyhow::Result<()> {
+    fn encode_sized(&self, writer: &mut impl Write, size: &VarInt) -> anyhow::Result<()> {
         size.encode(writer)?;
         for item in self {
             item.encode(writer)?;
@@ -188,7 +188,7 @@ where
 {
     fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
         let size = VarInt::decode(reader)?;
-        let item = T::decode(reader, &size)?;
+        let item = T::decode_sized(reader, &size)?;
         Ok((size, item))
     }
 }
@@ -199,7 +199,7 @@ where
 {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         self.0.encode(writer)?;
-        self.1.encode(writer, &self.0)
+        self.1.encode_sized(writer, &self.0)
     }
 
     fn size(&self) -> anyhow::Result<VarInt> {
