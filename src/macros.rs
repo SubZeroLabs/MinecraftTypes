@@ -18,6 +18,20 @@ macro_rules! declare_primitives {
                     Ok($crate::VarInt::from($size))
                 }
             }
+
+            #[async_trait]
+            impl $crate::AsyncEncodable for $prim {
+                async fn async_encode(
+                    &self,
+                    writer: &mut tokio::net::tcp::OwnedWriteHalf,
+                ) -> anyhow::Result<()> {
+                    use tokio::io::AsyncWriteExt;
+                    writer
+                        .write_all(&self.to_be_bytes())
+                        .await
+                        .context(format!("Failed to write {} into buffer.", &self))
+                }
+            }
         )*
     }
 }
@@ -198,6 +212,26 @@ macro_rules! declare_variable_number {
             }
         }
 
+        #[async_trait]
+        impl $crate::AsyncEncodable for $name {
+            async fn async_encode(
+                &self,
+                writer: &mut tokio::net::tcp::OwnedWriteHalf,
+            ) -> anyhow::Result<()> {
+                use tokio::io::AsyncWriteExt;
+
+                let mut temp = self.0.clone() as $primitive_unsigned;
+                loop {
+                    if temp & $and_check == 0 {
+                        writer.write_u8(temp as u8).await?;
+                        return Ok(());
+                    }
+                    writer.write_u8((temp & 0x7F | 0x80) as u8).await?;
+                    temp = temp.overflowing_shr(7).0;
+                }
+            }
+        }
+
         impl From<$primitive_unsigned> for $name {
             fn from(internal: $primitive_unsigned) -> Self {
                 $name(internal as $primitive_signed)
@@ -327,6 +361,23 @@ macro_rules! simple_auto_enum {
                     }
                 }
             }
+
+            #[async_trait::async_trait]
+            impl $crate::AsyncEncodable for $enum_name {
+                async fn async_encode(
+                    &self,
+                    writer: &mut tokio::net::tcp::OwnedWriteHalf,
+                ) -> anyhow::Result<()> {
+                    match self {
+                        $(
+                            $enum_name::$option_name => {
+                                <$index_type>::async_encode(&<$index_type>::from($byte_representation), writer).await?;
+                                Ok(())
+                            }
+                        )*
+                    }
+                }
+            }
         )*
     };
 }
@@ -399,6 +450,29 @@ macro_rules! auto_enum {
                     }
                 }
             }
+
+            #[async_trait::async_trait]
+            impl $crate::AsyncEncodable for $enum_name {
+                async fn async_encode(
+                    &self,
+                    writer: &mut tokio::net::tcp::OwnedWriteHalf,
+                ) -> anyhow::Result<()> {
+                    match self {
+                        $(
+                            $enum_name::$option_name$(($pseudo))* => {
+                                <$index_type>::async_encode(&<$index_type>::from($byte_representation), writer).await?;
+                                $(
+                                    anyhow::Context::context(
+                                        <$option_type>::async_encode($pseudo, writer).await,
+                                        format!("Failed to encode enum type {}::{}.", stringify!($enum_name), stringify!($option_name))
+                                    )?;
+                                )*
+                                Ok(())
+                            }
+                        )*
+                    }
+                }
+            }
         )*
     };
 }
@@ -465,6 +539,18 @@ macro_rules! auto_struct {
                         let size = size + <$field_type>::size(&self.$field_name)?;
                     )*
                     Ok(size)
+                }
+            }
+
+            #[async_trait::async_trait]
+            #[allow(unused_variables)]
+            impl $crate::AsyncEncodable for $struct_name {
+                async fn async_encode(
+                    &self,
+                    writer: &mut tokio::net::tcp::OwnedWriteHalf,
+                ) -> anyhow::Result<()> {
+                    $(anyhow::Context::context(self.$field_name.async_encode(writer).await, field_context!($field_name, $field_type, "encode"))?;)*
+                    Ok(())
                 }
             }
         )*

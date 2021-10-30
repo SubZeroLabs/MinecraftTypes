@@ -1,4 +1,7 @@
+#![feature(in_band_lifetimes)]
+
 use anyhow::Context;
+use async_trait::async_trait;
 use std::io::{Read, Write};
 
 #[macro_use]
@@ -6,22 +9,27 @@ pub mod macros;
 pub mod base_types;
 pub mod packets;
 
+use std::fmt::{Display, Formatter, Result};
+use uuid::{Builder, Uuid};
+use tokio::net::tcp::OwnedWriteHalf;
+use tokio::io::AsyncWriteExt;
+
 pub trait Decodable {
     fn decode(reader: &mut impl Read) -> anyhow::Result<Self>
-    where
-        Self: Sized;
+        where
+            Self: Sized;
 }
 
 pub trait IndexDecodable {
     fn decode_index(reader: &mut impl Read, index: &VarInt) -> anyhow::Result<Self>
-    where
-        Self: Sized;
+        where
+            Self: Sized;
 }
 
 pub trait SizeDecodable {
     fn decode_sized(reader: &mut impl Read, size: &VarInt) -> anyhow::Result<Self>
-    where
-        Self: Sized;
+        where
+            Self: Sized;
 }
 
 pub trait Encodable {
@@ -30,10 +38,27 @@ pub trait Encodable {
     fn size(&self) -> anyhow::Result<VarInt>;
 }
 
+#[async_trait]
+pub trait AsyncEncodable: Encodable {
+    async fn async_encode(
+        &self,
+        writer: &mut tokio::net::tcp::OwnedWriteHalf,
+    ) -> anyhow::Result<()>;
+}
+
 pub trait SizeEncodable {
     fn encode_sized(&self, writer: &mut impl Write, size: &VarInt) -> anyhow::Result<()>;
 
     fn predicted_size(&self) -> anyhow::Result<VarInt>;
+}
+
+#[async_trait]
+pub trait AsyncSizeEncodable: SizeEncodable {
+    async fn async_encode_sized(
+        &self,
+        writer: &mut tokio::net::tcp::OwnedWriteHalf,
+        size: &VarInt,
+    ) -> anyhow::Result<()>;
 }
 
 // primitives
@@ -63,6 +88,20 @@ impl Encodable for bool {
     }
 }
 
+#[async_trait]
+impl AsyncEncodable for bool {
+    async fn async_encode(
+        &self,
+        writer: &mut tokio::net::tcp::OwnedWriteHalf,
+    ) -> anyhow::Result<()> {
+        use tokio::io::AsyncWriteExt;
+        writer
+            .write_u8(*self as u8)
+            .await
+            .context(format!("Failed to write {} into buffer.", &self))
+    }
+}
+
 declare_primitives!(
     |i8;1|
     |u8;1|
@@ -74,16 +113,14 @@ declare_primitives!(
     |f64;8|
 );
 
-use std::fmt::{Display, Formatter, Result};
-use uuid::{Builder, Uuid};
 declare_variable_number!(VarInt, i32, 35, u32, 0xFFFFFF80);
 declare_variable_number!(VarLong, i64, 70, u64, 0xFFFFFFFFFFFFFF80);
 
 // exported functions
 
 impl<T> Decodable for Vec<T>
-where
-    T: Decodable,
+    where
+        T: Decodable,
 {
     fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
         let mut items: Vec<T> = Vec::new();
@@ -99,8 +136,8 @@ where
 }
 
 impl<T> Encodable for Vec<T>
-where
-    T: Encodable,
+    where
+        T: Encodable,
 {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         for item in self {
@@ -118,9 +155,20 @@ where
     }
 }
 
+#[async_trait]
+impl<T> AsyncEncodable for Vec<T>
+    where T: AsyncEncodable + Send + Sync {
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        for item in self {
+            item.async_encode(writer).await?;
+        }
+        Ok(())
+    }
+}
+
 impl<T> SizeDecodable for Vec<T>
-where
-    T: Decodable,
+    where
+        T: Decodable,
 {
     fn decode_sized(reader: &mut impl Read, size: &VarInt) -> anyhow::Result<Self> {
         let mut items = Vec::with_capacity(**size as usize);
@@ -131,9 +179,22 @@ where
     }
 }
 
+#[async_trait]
+impl<T> AsyncSizeEncodable for Vec<T>
+    where
+        T: AsyncEncodable + Send + Sync {
+    async fn async_encode_sized(&self, writer: &mut OwnedWriteHalf, size: &VarInt) -> anyhow::Result<()> {
+        size.async_encode(writer).await?;
+        for item in self {
+            item.async_encode(writer).await?;
+        }
+        Ok(())
+    }
+}
+
 impl<T> SizeEncodable for Vec<T>
-where
-    T: Encodable,
+    where
+        T: Encodable,
 {
     fn encode_sized(&self, writer: &mut impl Write, size: &VarInt) -> anyhow::Result<()> {
         size.encode(writer)?;
@@ -153,8 +214,8 @@ where
 }
 
 impl<T> Decodable for Option<T>
-where
-    T: Decodable,
+    where
+        T: Decodable,
 {
     fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
         let result = T::decode(reader)?;
@@ -163,8 +224,8 @@ where
 }
 
 impl<T> Encodable for Option<T>
-where
-    T: Encodable,
+    where
+        T: Encodable,
 {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         if let Some(item) = self {
@@ -182,9 +243,23 @@ where
     }
 }
 
+#[async_trait]
+impl<T> AsyncEncodable for Option<T>
+    where
+        T: AsyncEncodable + Send + Sync,
+{
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        if let Some(item) = self {
+            item.async_encode(writer).await
+        } else {
+            Ok(())
+        }
+    }
+}
+
 impl<T> Decodable for (VarInt, T)
-where
-    T: SizeDecodable,
+    where
+        T: SizeDecodable,
 {
     fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
         let size = VarInt::decode(reader)?;
@@ -194,8 +269,8 @@ where
 }
 
 impl<T> Encodable for (VarInt, T)
-where
-    T: SizeEncodable,
+    where
+        T: SizeEncodable,
 {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         self.1.encode_sized(writer, &self.0)
@@ -206,11 +281,39 @@ where
     }
 }
 
+#[async_trait]
+impl<T> AsyncEncodable for (VarInt, T)
+    where
+        T: AsyncSizeEncodable + Send + Sync,
+{
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        self.1.async_encode_sized(writer, &self.0).await
+    }
+}
+
 // This section is used for entity metadata
 
+impl<T> Decodable for (bool, Option<T>)
+    where
+        T: Decodable,
+{
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self>
+        where
+            Self: Sized,
+    {
+        let present = bool::decode(reader)?;
+        if present {
+            let item = T::decode(reader)?;
+            Ok((true, Some(item)))
+        } else {
+            Ok((false, None))
+        }
+    }
+}
+
 impl<T> Encodable for (bool, Option<T>)
-where
-    T: Encodable,
+    where
+        T: Encodable,
 {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         self.0.encode(writer)?;
@@ -237,29 +340,41 @@ where
     }
 }
 
-impl<T> Decodable for (bool, Option<T>)
-where
-    T: Decodable,
-{
-    fn decode(reader: &mut impl Read) -> anyhow::Result<Self>
-    where
-        Self: Sized,
-    {
-        let present = bool::decode(reader)?;
-        if present {
-            let item = T::decode(reader)?;
-            Ok((true, Some(item)))
+#[async_trait]
+impl<T> AsyncEncodable for (bool, Option<T>)
+    where T: AsyncEncodable + Send + Sync {
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        self.0.async_encode(writer).await?;
+        if self.0 {
+            match &self.1 {
+                Some(item) => item.async_encode(writer).await,
+                None => anyhow::bail!("Expected some value but found None."),
+            }
         } else {
-            Ok((false, None))
+            Ok(())
         }
     }
 }
 
+impl<X, Y, Z> Decodable for (X, Y, Z)
+    where
+        X: Decodable,
+        Y: Decodable,
+        Z: Decodable,
+{
+    fn decode(reader: &mut impl Read) -> anyhow::Result<Self>
+        where
+            Self: Sized,
+    {
+        Ok((X::decode(reader)?, Y::decode(reader)?, Z::decode(reader)?))
+    }
+}
+
 impl<X, Y, Z> Encodable for (X, Y, Z)
-where
-    X: Encodable,
-    Y: Encodable,
-    Z: Encodable,
+    where
+        X: Encodable,
+        Y: Encodable,
+        Z: Encodable,
 {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         self.0.encode(writer)?;
@@ -273,17 +388,17 @@ where
     }
 }
 
-impl<X, Y, Z> Decodable for (X, Y, Z)
-where
-    X: Decodable,
-    Y: Decodable,
-    Z: Decodable,
-{
-    fn decode(reader: &mut impl Read) -> anyhow::Result<Self>
+#[async_trait]
+impl<X, Y, Z> AsyncEncodable for (X, Y, Z)
     where
-        Self: Sized,
-    {
-        Ok((X::decode(reader)?, Y::decode(reader)?, Z::decode(reader)?))
+        X: AsyncEncodable + Send + Sync,
+        Y: AsyncEncodable + Send + Sync,
+        Z: AsyncEncodable + Send + Sync, {
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        self.0.async_encode(writer).await?;
+        self.1.async_encode(writer).await?;
+        self.2.async_encode(writer).await?;
+        Ok(())
     }
 }
 
@@ -298,8 +413,8 @@ pub trait McString: Sized {
 }
 
 impl<T> Decodable for T
-where
-    T: McString,
+    where
+        T: McString,
 {
     fn decode(reader: &mut impl Read) -> anyhow::Result<T> {
         let true_size = VarInt::decode(reader)?;
@@ -324,8 +439,8 @@ where
 }
 
 impl<T> Encodable for T
-where
-    T: McString,
+    where
+        T: McString,
 {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         let bytes = self.string().as_bytes();
@@ -346,6 +461,30 @@ where
 
     fn size(&self) -> anyhow::Result<VarInt> {
         Ok(VarInt::from(self.string().len()).size()? + VarInt::from(self.string().len()))
+    }
+}
+
+#[async_trait]
+impl<T> AsyncEncodable for T
+    where
+        T: McString + Send + Sync,
+{
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        use tokio::io::AsyncWriteExt;
+
+        let bytes = self.string().as_bytes();
+        let length = VarInt::from(bytes.len() as i32);
+        if length > T::limit() {
+            anyhow::bail!(
+                "Failed to encode string with limit {} with given size {}.",
+                T::limit(),
+                bytes.len()
+            );
+        }
+
+        length.async_encode(writer).await?;
+        writer.write_all(bytes).await?;
+        Ok(())
     }
 }
 
@@ -371,6 +510,16 @@ impl Encodable for McUuid {
 
     fn size(&self) -> anyhow::Result<VarInt> {
         Ok(VarInt::from(16))
+    }
+}
+
+#[async_trait]
+impl AsyncEncodable for McUuid {
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        writer
+            .write_all(&*self.0.as_bytes())
+            .await
+            .context("Failed to encode uuid bytes.")
     }
 }
 
@@ -408,6 +557,13 @@ impl Encodable for Angle {
 
     fn size(&self) -> anyhow::Result<VarInt> {
         Ok(VarInt::from(1))
+    }
+}
+
+#[async_trait]
+impl AsyncEncodable for Angle {
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        self.0.async_encode(writer).await
     }
 }
 
@@ -449,6 +605,17 @@ impl Encodable for Position {
     }
 }
 
+#[async_trait]
+impl AsyncEncodable for Position {
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        let mut long: i64 = 0;
+        long |= (self.0 & 0x3FFFFFF).overflowing_shl(38).0;
+        long |= (self.1 & 0x3FFFFFF).overflowing_shl(12).0;
+        long |= self.2 & 0xFFF;
+        long.async_encode(writer).await
+    }
+}
+
 impl Decodable for Position {
     fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
         let long = i64::decode(reader)?;
@@ -477,6 +644,17 @@ impl Encodable for NbtTag {
 
     fn size(&self) -> anyhow::Result<VarInt> {
         Ok(VarInt::from(self.0.len_bytes()))
+    }
+}
+
+#[async_trait]
+impl AsyncEncodable for NbtTag {
+    async fn async_encode(&self, writer: &mut OwnedWriteHalf) -> anyhow::Result<()> {
+        let mut vec = Vec::with_capacity(self.size()?.into());
+        self.0
+            .to_writer(&mut vec)
+            .context("Failed to encode NBT tag to buffer.")?;
+        writer.write_all(&vec).await.context("Failed to encode NBT tag to writer")
     }
 }
 
