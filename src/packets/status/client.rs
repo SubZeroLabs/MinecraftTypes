@@ -1,4 +1,4 @@
-auto_string!(StatusResponseJson, 255);
+auto_string!(StatusResponseJson, 32767);
 
 auto_struct! {
     StatusResponse {
