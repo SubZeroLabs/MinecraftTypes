@@ -228,6 +228,12 @@ macro_rules! declare_variable_number {
             }
         }
 
+        impl From<$name> for usize {
+            fn from(internal: $name) -> Self {
+                internal.0 as usize
+            }
+        }
+
         impl std::ops::Deref for $name {
             type Target = $primitive_signed;
 
