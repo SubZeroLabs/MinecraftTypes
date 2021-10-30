@@ -113,6 +113,36 @@ macro_rules! declare_variable_number {
             }
         }
 
+        impl $name {
+            pub fn decode_and_size(reader: &mut impl Read) -> anyhow::Result<(VarInt, Self)> {
+                let mut running_size = 0;
+                let mut value: $primitive_signed = 0;
+                let mut bit_offset = 0u32;
+                loop {
+                    if bit_offset == $bit_limit {
+                        anyhow::bail!(
+                            "Failed to decode {}, too many bytes.",
+                            stringify!($crate::VarInt)
+                        );
+                    }
+
+                    let mut buf = [0; 1];
+                    reader.read_exact(&mut buf)?;
+                    running_size += 1;
+                    let byte = buf[0];
+                    value |= <$primitive_signed>::from(byte & 0b01111111)
+                        .overflowing_shl(bit_offset)
+                        .0;
+                    bit_offset += 7;
+
+                    if byte & 0b10000000 == 0 {
+                        break;
+                    }
+                }
+                Ok((VarInt::from(running_size), $name(value)))
+            }
+        }
+
         impl Decodable for $name {
             fn decode(reader: &mut impl Read) -> anyhow::Result<Self> {
                 let mut value: $primitive_signed = 0;
@@ -174,9 +204,9 @@ macro_rules! declare_variable_number {
             }
         }
 
-        impl Into<$primitive_unsigned> for $name {
-            fn into(self) -> $primitive_unsigned {
-                self.0 as $primitive_unsigned
+        impl From<$name> for $primitive_unsigned {
+            fn from(internal: $name) -> Self {
+                internal.0 as $primitive_unsigned
             }
         }
 
@@ -186,9 +216,9 @@ macro_rules! declare_variable_number {
             }
         }
 
-        impl Into<$primitive_signed> for $name {
-            fn into(self) -> $primitive_signed {
-                self.0
+        impl From<$name> for $primitive_signed {
+            fn from(internal: $name) -> Self {
+                internal.0
             }
         }
 

@@ -438,9 +438,9 @@ impl Position {
 impl Encodable for Position {
     fn encode(&self, writer: &mut impl Write) -> anyhow::Result<()> {
         let mut long: i64 = 0;
-        long = long | (i64::from(self.0) & 0x3FFFFFF).overflowing_shl(38).0;
-        long = long | ((i64::from(self.1) & 0x3FFFFFF).overflowing_shl(12).0);
-        long = long | (i64::from(self.2) & 0xFFF);
+        long |= (self.0 & 0x3FFFFFF).overflowing_shl(38).0;
+        long |= (self.1 & 0x3FFFFFF).overflowing_shl(12).0;
+        long |= self.2 & 0xFFF;
         long.encode(writer)
     }
 
