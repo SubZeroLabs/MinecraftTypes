@@ -312,6 +312,12 @@ macro_rules! auto_string {
                 internal.0
             }
         }
+
+        impl From<&$name> for String {
+            fn from(internal: &$name) -> Self {
+                String::from(&internal.0)
+            }
+        }
     };
 }
 
