@@ -1,7 +1,8 @@
-use crate::{ChatJson, Identifier, McUuid, VarInt};
+use crate::{ChatJson, Identifier, VarInt};
 
 auto_string!(EncryptionRequestServerId, 20);
 auto_string!(LoginSuccessName, 16);
+auto_string!(UuidString, 36);
 
 auto_struct! {
     Disconnect {
@@ -15,7 +16,7 @@ auto_struct! {
     }
 
     LoginSuccess {
-        uuid: McUuid,
+        uuid: UuidString,
         username: LoginSuccessName,
     }
 
