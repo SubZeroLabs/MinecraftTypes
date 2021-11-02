@@ -8,4 +8,4 @@ uuid = { version = "0.8.2", features = ["v4"] }
 hematite-nbt = "0.5.2"
 anyhow = "1.0.44"
 async-trait = "0.1"
-tokio = { version = "1", features = [ "io-util", "net" ]}
+tokio = { version = "1", features = [ "io-util" ]}
