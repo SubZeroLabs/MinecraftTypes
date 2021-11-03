@@ -54,10 +54,7 @@ pub trait McString: Sized {
     fn limit() -> VarInt;
 }
 
-impl<T> crate::encoder::Decodable for T
-    where
-        T: McString,
-{
+impl<T: McString> crate::encoder::Decodable for T {
     fn decode<R: std::io::Read>(reader: &mut R) -> anyhow::Result<T> {
         let true_size = VarInt::decode(reader)?;
 
@@ -80,10 +77,7 @@ impl<T> crate::encoder::Decodable for T
     }
 }
 
-impl<T> crate::encoder::Encodable for T
-    where
-        T: McString,
-{
+impl<T: McString> crate::encoder::Encodable for T {
     fn encode<W: std::io::Write>(&self, writer: &mut W) -> anyhow::Result<()> {
         let bytes = self.string().as_bytes();
         let length = VarInt::from(bytes.len() as i32);
@@ -108,11 +102,11 @@ impl<T> crate::encoder::Encodable for T
 }
 
 #[async_trait::async_trait]
-impl<T> crate::encoder::AsyncEncodable for T
-    where
-        T: McString + Send + Sync,
-{
-    async fn async_encode<W: tokio::io::AsyncWrite + Send + Unpin>(&self, writer: &mut W) -> anyhow::Result<()> {
+impl<T: McString + Send + Sync> crate::encoder::AsyncEncodable for T {
+    async fn async_encode<W: tokio::io::AsyncWrite + Send + Unpin>(
+        &self,
+        writer: &mut W,
+    ) -> anyhow::Result<()> {
         use tokio::io::AsyncWriteExt;
 
         let bytes = self.string().as_bytes();
