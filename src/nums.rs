@@ -186,7 +186,7 @@ macro_rules! impl_variable_number_bind {
         impl std::cmp::PartialOrd<std::result::Result<$sim, std::num::TryFromIntError>> for $name {
             fn partial_cmp(&self, other: &std::result::Result<$sim, std::num::TryFromIntError>) -> Option<std::cmp::Ordering> {
                 if let Ok(internal) = other {
-                    internal.partial_cmp(&self.0)
+                    self.0.partial_cmp(&internal)
                 } else {
                     None
                 }
