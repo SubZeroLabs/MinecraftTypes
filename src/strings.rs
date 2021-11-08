@@ -26,6 +26,12 @@ macro_rules! auto_string {
             }
         }
 
+        impl From<&String> for $name {
+            fn from(internal: &String) -> Self {
+                $name(String::from(internal))
+            }
+        }
+
         impl From<&str> for $name {
             fn from(internal: &str) -> Self {
                 $name(String::from(internal))
@@ -38,15 +44,15 @@ macro_rules! auto_string {
             }
         }
 
-        impl std::fmt::Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}", &self)
-            }
-        }
-
         impl From<&$name> for String {
             fn from(internal: &$name) -> Self {
                 String::from(&internal.0)
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", &self)
             }
         }
 
